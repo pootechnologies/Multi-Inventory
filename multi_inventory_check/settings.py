@@ -163,18 +163,14 @@ LOGGING = {
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'level': 'DEBUG',
         },
     },
     'loggers': {
         'django': {
             'handlers': ['console'],
-            'level': 'INFO',
-        },
-        # Silence DRF / Django missing template variable traces
-        'django.template': {
-            'handlers': ['console'],
-            'level': 'WARNING',  # Suppresses VariableDoesNotExist lookups
-            'propagate': False,
+            'level': 'DEBUG',
+            'propagate': True,
         },
     },
 }
