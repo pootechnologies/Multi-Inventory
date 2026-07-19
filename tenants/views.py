@@ -123,7 +123,7 @@ class ChapaPaymentInitView(generics.GenericAPIView):
             provider="chapa"
         )
         tenant = payment.tenant
-        tenant.paid_until = timezone.now().date() + timedelta(days=3)  # 3 days grace period
+        tenant.paid_until = timezone.now().date() + timedelta(days=1)  # 1 day grace period
         tenant.save()
 
         payment_url = chapa_response.get("data", {}).get("checkout_url")
@@ -457,7 +457,7 @@ class PaymentVerifyView(generics.GenericAPIView):
 class PublicTenantBootstrapView(generics.ListCreateAPIView):
     serializer_class = PublicTenantBootstrapSerializer
     queryset = Tenant.objects.order_by('id')
-    pagination_class = Pagination
+    # pagination_class = Pagination
 
     # def get_queryset(self):
     #     return super().get_queryset().filter(schema_name='public')
@@ -483,14 +483,15 @@ class PublicTenantBootstrapView(generics.ListCreateAPIView):
 
         return Response({
             "message": "Public tenant created successfully",
-            "tenant": TenantSerializer(tenant).data,
+            # "tenant": TenantSerializer(tenant).data,
+            "tenant": PublicTenantBootstrapSerializer(tenant).data,
         }, status=status.HTTP_201_CREATED)
 
 
 class ProvisionTenantView(generics.ListCreateAPIView):
     serializer_class = ProvisionTenantSerializer
     queryset = Tenant.objects.order_by('id')
-    pagination_class = Pagination
+    # pagination_class = Pagination
 
     def get_queryset(self):
         return super().get_queryset().exclude(schema_name='public')
@@ -519,7 +520,8 @@ class ProvisionTenantView(generics.ListCreateAPIView):
 
         return Response({
             "message": "Tenant provisioned created successfully",
-            "tenant": TenantSerializer(tenant).data,
+            # "tenant": TenantSerializer(tenant).data,
+             "tenant": ProvisionTenantSerializer(tenant).data,
         }, status=status.HTTP_201_CREATED)
 
 # class userListCreateView(generics.ListCreateAPIView):
