@@ -28,10 +28,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-5@y00p!po-yq!0h$#k%37k=7do@%qj(eedyw0#ctt8dkn55d7k'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 # ALLOWED_HOSTS = []
-ALLOWED_HOSTS = ["*.inventory-back.pootechnologies.tech", ".inventory-back.pootechnologies.tech", "inventory-back.pootechnologies.tech", "45.93.136.48"]
+ALLOWED_HOSTS = ["*.inventory.pootechnologies.tech", ".inventory.pootechnologies.tech", "inventory.pootechnologies.tech", "45.93.136.48"]
 
 
 # Application definition
@@ -127,7 +127,7 @@ DATABASE_ROUTERS = [
     "django_tenants.routers.TenantSyncRouter",
 ]
 
-BASE_DOMAIN = "inventory-back.pootechnologies.tech"
+BASE_DOMAIN = "inventory.pootechnologies.tech"
 PUBLIC_SCHEMA_NAME = "public"
 
 # TENANT_USERS_DOMAIN defines from which domain the users should be provisioned. This should match the domain of the public tenant.
