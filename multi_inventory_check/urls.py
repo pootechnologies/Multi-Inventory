@@ -16,9 +16,20 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.urls import path, include, re_path
+from django.conf import settings
+from django.conf.urls.static import static
+# ADD THIS IMPORT LINE
+from django.views.static import serve 
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('tenants.urls_private')),
     path('api/', include('inventory.urls')),
+        # This captures the URL and maps it to the physical file in /app/media
+    re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
 ]
+
+# You can keep this; it doesn't hurt, but the re_path above is what 
+# will do the heavy lifting in your Dokploy production environment.
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
