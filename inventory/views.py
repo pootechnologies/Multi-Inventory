@@ -509,7 +509,7 @@ class CustomerListCreateAPIView(APIView):
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             validated_data = serializer.validated_data
-            serializer.create(validated_data, user=request.user)
+            serializer.create(validated_data)
             return Response({"message": f"Customer Created successfully."}, status=status.HTTP_201_CREATED)     
         except KeyError as e:
             return Response(
@@ -1084,14 +1084,11 @@ class CategoryRetrieveUpdateDeleteAPIView(APIView):
 
 
 class RetriveRevenueAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request): 
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrive the Revenue."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     ) 
+           
      
             revenue = Order.objects.filter(status="Done", payment_status='Paid').aggregate(total_revenue=Sum('total_amount'))        
             return Response(revenue, status=status.HTTP_200_OK)         
@@ -1102,14 +1099,12 @@ class RetriveRevenueAPIView(APIView):
             )
 
 class RetriveSalesPersonRevenueAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request): 
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrive the Revenue."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     ) 
+            user = request.user
+            
             orders = Order.objects.filter(user_email=user.email, status='Done', payment_status='Paid')
             revenue = orders.aggregate(total_revenue=Sum('total_amount'))
 
@@ -1121,14 +1116,11 @@ class RetriveSalesPersonRevenueAPIView(APIView):
             )
 
 class RetriveTotalOrdersAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request): 
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrive the Revenue."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     ) 
+            user = request.user
             orders = Order.objects.filter(user_email=user.email, status='Done', payment_status='Paid')
             total_orders = orders.aggregate(total_orders=Count('total_amount'))
 
@@ -1140,14 +1132,10 @@ class RetriveTotalOrdersAPIView(APIView):
             )
 
 class RetriveProfitAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request): 
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrive the Profit."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
             
             # Get all paid and done orders
             paid_done_orders = Order.objects.filter(status="Done", payment_status='Paid')
@@ -1260,12 +1248,6 @@ class OrderReceiptAPIView(APIView):
 class OrderLogAPIView(APIView):
     def get(self, request):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrive the Order Log."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
             
             search_query = request.query_params.get('search', None)
             include_all = request.query_params.get('include_all', '').lower() in ('1', 'true', 'yes')
@@ -1310,14 +1292,11 @@ class OrderLogAPIView(APIView):
 
 
 class ExcelReportAPIView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request):
         try:
-            # user = request.user
-            # if not (user.role in ['Manager', 'Salesman', 'Sales Manager'] or user.is_superuser):
-            #     return Response(
-            #         {"error": "You are not authorized to retrieve the Order Report."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+          
 
             # Get query parameters
             start_date = request.query_params.get('start_date')
@@ -1350,14 +1329,11 @@ class ExcelReportAPIView(APIView):
 
 
 class ListOutOFStockProductAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrive the near Stock."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+            
             out_of_stock_products = Product.objects.filter(stock__lte=3)
             serializer = ProductGetSerializer(out_of_stock_products, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -1369,14 +1345,11 @@ class ListOutOFStockProductAPIView(APIView):
             )
 
 class CountNearExpirationDateProductAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrive the Stock Shortage."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+            
             out_of_stock_products = Product.objects.filter(stock__lte=3).aggregate(out_of_stock=Count('name'))
             return Response(out_of_stock_products, status=status.HTTP_200_OK)
 
@@ -1387,16 +1360,13 @@ class CountNearExpirationDateProductAPIView(APIView):
             )
 
 class ExpenseTypesListCreateAPIView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
 
     # permission_classes = (permissions.AllowAny,)
     def get(self, request, format=None):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrive the Expense Types."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+            
             expense_type = ExpenseTypes.objects.all().order_by('id')
             serializer = ExpenseTypesSerializer(expense_type, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)              
@@ -1409,19 +1379,15 @@ class ExpenseTypesListCreateAPIView(APIView):
 
     def post(self, request, format=None):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to create the Expense Types."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+            
 
             serializer = ExpenseTypesSerializer(data=request.data)
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
             validated_data = serializer.validated_data
-            serializer.create(validated_data, user=request.user)
+            # serializer.create(validated_data, user=request.user)
+            serializer.create(validated_data)
             return Response({"message": f"Expense Types created successfully."}, status=status.HTTP_201_CREATED)
                       
         except KeyError as e:
@@ -1431,15 +1397,12 @@ class ExpenseTypesListCreateAPIView(APIView):
             )
 
 class ExpenseTypesRetrieveUpdateDeleteAPIView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     # permission_classes = (permissions.AllowAny,)
     def get(self, request, pk):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrive the Expense Types."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+           
             if not ExpenseTypes.objects.filter(id=pk).exists():
                 return Response(
                     {"error": "Expense Types Does not Exist."},
@@ -1456,12 +1419,7 @@ class ExpenseTypesRetrieveUpdateDeleteAPIView(APIView):
 
     def put(self, request, pk):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to update the Expense Types."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )                
+                        
             if not ExpenseTypes.objects.filter(id=pk).exists():
                 return Response(
                     {"error": "Expense Types Does not Exist."},
@@ -1482,12 +1440,7 @@ class ExpenseTypesRetrieveUpdateDeleteAPIView(APIView):
         
     def patch(self, request, pk):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to update the Expense Types."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )                
+                         
             if not ExpenseTypes.objects.filter(id=pk).exists():
                 return Response(
                     {"error": "Expense Types Does not Exist."},
@@ -1507,12 +1460,7 @@ class ExpenseTypesRetrieveUpdateDeleteAPIView(APIView):
 
     def delete(self, request, pk):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to delete the Expense Types."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )                
+                        
             if not ExpenseTypes.objects.filter(id=pk).exists():
                 return Response(
                     {"error": "Expense Types Does not Exist."},
@@ -1536,17 +1484,13 @@ class ExpenseTypesRetrieveUpdateDeleteAPIView(APIView):
 
 
 class OtherExpensesListCreateAPIView(APIView):
-
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     # permission_classes = (permissions.AllowAny,)
     def get(self, request, format=None):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrive Other Expenses."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
-            other_expenses = OtherExpenses.objects.all().order_by('id')
+            
+            other_expenses = OtherExpenses.objects.all().order_by('-id')
             serializer = OtherExpensesGetSerializer(other_expenses, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)              
                       
@@ -1558,20 +1502,17 @@ class OtherExpensesListCreateAPIView(APIView):
 
     def post(self, request, format=None):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to create Other Expenses."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+          
 
             serializer = OtherExpensesSerializer(data=request.data)
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
             validated_data = serializer.validated_data
-            serializer.create(validated_data, user=request.user)
-            return Response({"message": f"Other Expenses created successfully."}, status=status.HTTP_201_CREATED)
+            # serializer.create(validated_data, user=request.user)
+            serializer.create(validated_data)
+            # return Response({"message": f"Other Expenses created successfully."}, status=status.HTTP_201_CREATED)
+            return Response({"data": serializer.data}, status=status.HTTP_201_CREATED)
                       
         except KeyError as e:
             return Response(
@@ -1580,15 +1521,12 @@ class OtherExpensesListCreateAPIView(APIView):
             )
 
 class OtherExpensesRetrieveUpdateDeleteAPIView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     # permission_classes = (permissions.AllowAny,)
     def get(self, request, pk):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrive Other Expenses."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+           
             if not OtherExpenses.objects.filter(id=pk).exists():
                 return Response(
                     {"error": "Other Expenses Does not Exist."},
@@ -1605,12 +1543,7 @@ class OtherExpensesRetrieveUpdateDeleteAPIView(APIView):
 
     def put(self, request, pk):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to update Other Expenses."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )                
+                        
             if not OtherExpenses.objects.filter(id=pk).exists():
                 return Response(
                     {"error": "Other Expenses Does not Exist."},
@@ -1631,12 +1564,7 @@ class OtherExpensesRetrieveUpdateDeleteAPIView(APIView):
         
     def patch(self, request, pk):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to update Other Expenses."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )                
+                        
             if not OtherExpenses.objects.filter(id=pk).exists():
                 return Response(
                     {"error": "Other Expenses Does not Exist."},
@@ -1656,12 +1584,7 @@ class OtherExpensesRetrieveUpdateDeleteAPIView(APIView):
 
     def delete(self, request, pk):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to delete Other Expenses."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )                
+                         
             if not OtherExpenses.objects.filter(id=pk).exists():
                 return Response(
                     {"error": "Other Expenses Does not Exist."},
@@ -1685,14 +1608,11 @@ class OtherExpensesRetrieveUpdateDeleteAPIView(APIView):
 
 
 class RetriveTotalProductCostAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request): 
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrive the Total Product Cost."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     ) 
+           
      
             total_product_cost = Product.objects.aggregate(total_product_cost=Sum('buying_price'))        
             return Response(total_product_cost, status=status.HTTP_200_OK)         
@@ -1703,14 +1623,11 @@ class RetriveTotalProductCostAPIView(APIView):
             )
 
 class ProductExcelReportAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrive the Product Report."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+           
             report = Product.objects.all()
             serializer = ProductGetReportSerializer(report, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -1722,20 +1639,17 @@ class ProductExcelReportAPIView(APIView):
             )
 
 class ProductsPerSupplierAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request, pk):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to Retrive products for this supplier."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     ) 
+          
             """Retrieve all products belonging to a specific supplier."""
             products = Product.objects.filter(supplier_id=pk)
             if not products.exists():
                 return Response({"message": "No products found for this supplier"}, status=status.HTTP_404_NOT_FOUND)
             
-            serializer = ProductGetSerializer(products, many=True)
+            serializer = ProductSerializer(products, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except Exception as e:
             return Response(
@@ -1747,14 +1661,11 @@ class ProductsPerSupplierAPIView(APIView):
 
 
 class SalesPersonDashboardAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request):
         try:
-            # user = request.user
-            # if not (user.role == 'Salesman' or user.is_superuser == True):
-            #     return Response(
-            #         {"error": "You are not authorized to access Salesman Dashboard."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+            
             if not Order.objects.filter(user_email=user.email).exists():
                 return Response(
                     {"error": "Order Does not Exist."},
@@ -1772,14 +1683,11 @@ class SalesPersonDashboardAPIView(APIView):
             )
 
 class RecentOrderLimitedAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman'):
-            #     return Response(
-            #         {"error": "You are not authorized to access Recent Orders."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+           
             recent_orders = Order.objects.all().order_by('-order_date')[:10]
             serializer = OrderSerializer(recent_orders, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -1792,14 +1700,11 @@ class RecentOrderLimitedAPIView(APIView):
 # ------------------------------------- Total Sales relative to Time --------------------------------------------------
 
 class DailySalesAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser or user.role == 'Salesman'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrieve daily sales."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+            
             today = timezone.now().date()
             orders = Order.objects.filter(order_date__date=today, status="Done", payment_status='Paid')
             total_sales = orders.aggregate(total_sales=Sum('total_amount'))['total_sales'] or 0
@@ -1816,14 +1721,11 @@ class DailySalesAPIView(APIView):
             )
        
 class WeeklySalesAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser or user.role == 'Salesman'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrieve sales."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+            
             today = timezone.now().date()
             sales_data = []
 
@@ -1848,14 +1750,11 @@ class WeeklySalesAPIView(APIView):
             )
         
 class MonthlySalesAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser or user.role == 'Salesman'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrieve sales."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+           
             today = timezone.now().date()
             year = today.year
             sales_data = []
@@ -1881,14 +1780,11 @@ class MonthlySalesAPIView(APIView):
             )
         
 class YearlySalesAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser or user.role == 'Salesman'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrieve sales."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+           
             today = timezone.now().date()
             year = today.year
 
@@ -1914,14 +1810,11 @@ class YearlySalesAPIView(APIView):
 # ------------------------------------- Total Sales relative to Time for Each User --------------------------------------------------
 
 class DailySalesEachUserAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrieve daily sales."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+            user = request.user
             today = timezone.now().date()
             orders = Order.objects.filter(order_date__date=today, user_email=user.email, status="Done", payment_status='Paid')
             total_sales = orders.aggregate(total_sales=Sum('total_amount'))['total_sales'] or 0
@@ -1938,14 +1831,11 @@ class DailySalesEachUserAPIView(APIView):
             )
        
 class WeeklySalesEachUserAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrieve sales."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+            user = request.user
             today = timezone.now().date()
             sales_data = []
 
@@ -1971,14 +1861,11 @@ class WeeklySalesEachUserAPIView(APIView):
             )
         
 class MonthlySalesEachUserAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrieve sales."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+            user = request.user
             today = timezone.now().date()
             year = today.year
             sales_data = []
@@ -2005,14 +1892,11 @@ class MonthlySalesEachUserAPIView(APIView):
             )
         
 class YearlySalesEachUserAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser or user.role == 'Salesman' or user.role == 'Sales Manager'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrieve sales."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
+            user = request.user
             today = timezone.now().date()
             year = today.year
 
@@ -2038,6 +1922,8 @@ class YearlySalesEachUserAPIView(APIView):
 
 
 class ExportProductExcelAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get(self, request, *args, **kwargs):
         # Create workbook and sheet
         wb = openpyxl.Workbook()
@@ -2069,6 +1955,8 @@ class ExportProductExcelAPIView(APIView):
         return response
 
 class ImportProductExcelAPIView(APIView):
+    # authentication_classes = [JWTAuthentication, SessionAuthentication]
+    # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     parser_classes = [MultiPartParser]
 
     def post(self, request, *args, **kwargs):
@@ -2105,11 +1993,32 @@ class ImportProductExcelAPIView(APIView):
 
 
 class OrderLogListView(generics.ListAPIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     serializer_class = OrderPaymentLogSerializer
 
     def get_queryset(self):
         order_id = self.kwargs['order_id']
         return OrderPaymentLog.objects.filter(order_id=order_id).order_by('-timestamp')
+
+
+class ProductLogAPIView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
+
+    def get(self, request):
+        try:
+           
+            log = ProductLog.objects.all()
+            serializer = ProductLogSerializer(log, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        except KeyError as e:
+            return Response(
+                {"error": f"An error occurred while Retriving the Product Log.  {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
 
 
 class ProductLogAPIView(APIView):
@@ -2328,10 +2237,12 @@ class PerformaPerformaListCreateView(generics.ListCreateAPIView):
 
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        # serializer.save(user=self.request.user)
+        serializer.save()
     
     def perform_update(self, serializer):
-        serializer.save(user=self.request.user)
+        # serializer.save(user=self.request.user)
+         serializer.save()
 
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
