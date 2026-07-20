@@ -14,6 +14,8 @@ from datetime import timedelta
 from django.utils.dateparse import parse_date
 import calendar
 import openpyxl
+from rest_framework.authentication import SessionAuthentication
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from tenants.user_permission import IsTenantOwnerOrAdmin, IsTenantUser, HasModelPermissionForTenant
 from .models import (
     Product, Supplier, Order, OrderItem, Category, 
