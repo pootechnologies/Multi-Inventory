@@ -31,7 +31,7 @@ SECRET_KEY = 'django-insecure-5@y00p!po-yq!0h$#k%37k=7do@%qj(eedyw0#ctt8dkn55d7k
 DEBUG = False
 
 # ALLOWED_HOSTS = []
-ALLOWED_HOSTS = ["*.inventory.pootechnologies.tech", ".inventory.pootechnologies.tech", "inventory.pootechnologies.tech", "45.93.136.48"]
+ALLOWED_HOSTS = ["*.inventory.pootechnologies.tech", ".inventory.pootechnologies.tech", "inventory.pootechnologies.tech", "*.dev-inventory.pootechnologies.tech", ".dev-inventory.pootechnologies.tech", "dev-inventory.pootechnologies.tech", "45.93.136.48"]
 
 
 # Application definition
