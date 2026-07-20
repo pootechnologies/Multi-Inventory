@@ -60,6 +60,8 @@ class SupplierSerializer(serializers.ModelSerializer):
         req = self.context.get('request')
         if req and getattr(req, 'user', None):
             validated_data['user'] = req.user.email
+        # else:
+        #     validated_data['user'] = "user" # or set to a default value if needed
             
         return super().create(validated_data) 
 
@@ -166,26 +168,33 @@ class ProductGetSerializer(serializers.ModelSerializer):
         # ]
 
 
-class ProductPostSerializer(serializers.ModelSerializer):
+class ProductSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source='category.name', read_only=True)
+    # category write_only field to accept category id during creation/updation
+    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), write_only=True)
+    supplier = serializers.PrimaryKeyRelatedField(queryset=Supplier.objects.all(), write_only=True)
+    supplier_name = serializers.CharField(source='supplier.name', read_only=True)
+    # bundle_components = BundleSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'category', 'description', 'package', 'piece', 'unit', 'buying_price', 'selling_price', 'receipt_no', 'specification', 'stock', 'supplier', 'image', 'is_bundle', 'user']
-        # constraints = [
-        #     UniqueConstraint(fields=['name', 'category', 'specification'], name='unique_product_category_specification')
-        # ]
-    
+        # fields = ['id', 'name', 'category', 'category_name', 'specification', 'description', 'package', 'piece', 'unit', 'buying_price', 'selling_price', 'receipt_no', 'specification', 'stock', 'supplier_name', 'image', 'is_bundle', 'bundle_components', 'user']
+        fields = ['id', 'name', 'category', 'category_name', 'specification', 'description', 'package', 'piece', 'unit', 'buying_price', 'selling_price', 'receipt_no', 'specification', 'stock', 'supplier','supplier_name', 'image', 'user']
+        constraints = [
+            UniqueConstraint(fields=['name', 'category_name', 'specification'], name='unique_product_category_specification')
+        ]
+
     def validate(self, attrs):
         name = attrs.get('name')
         category = attrs.get('category')
         specification = attrs.get('specification')
+
         if Product.objects.filter(name=name, category=category, specification=specification).exists():
             raise serializers.ValidationError(
                 {"error": "A product with this name, category and specification already exists."}
             )
-        return super().validate(attrs)
-    
-    def create(self, validated_data, user=None):
+        return super().validate(attrs)    
+    def create(self, validated_data):
         # Add the user to the validated_data if provided
         package = validated_data.get('package', None)
         piece = validated_data.get('piece', None)
@@ -201,13 +210,11 @@ class ProductPostSerializer(serializers.ModelSerializer):
                   raise serializers.ValidationError({"error": "stock can't be negative"})
             validated_data['stock'] = stock
 
-         
         req = self.context.get('request')
         if req and getattr(req, 'user', None):
             validated_data['user'] = req.user.email
         return super().create(validated_data)
-
-
+    
     def update(self, instance, validated_data):
         update_package = validated_data.pop('package', None) # Get the number of packages to add
         piece = validated_data.pop('piece', instance.piece) # Get the number of pieces to add
@@ -218,14 +225,8 @@ class ProductPostSerializer(serializers.ModelSerializer):
         old_stock = instance.stock
         new_selling_price = validated_data.get('selling_price')
         # new_stock = validated_data.get('stock')
-        print(old_selling_price)
 
         print(update_stocks, old_stock)
-
-        for attr, value in validated_data.items():
-            if attr != 'piece' and attr != 'package' and attr != 'stock' and attr != 'category':
-                setattr(instance, attr, value)
-        instance.save()
         
         validated_data['piece'] = piece
 
@@ -1819,7 +1820,9 @@ class PerformaCustomerSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({"detail": f"Failed to create customer: {str(e)}"})
 
     def update(self, instance, validated_data):
-        user = self.context["request"].user
+        req = self.context.get('request')
+        if req and getattr(req, 'user', None):
+            validated_data['user'] = req.user.email
         
         performas_data = validated_data.pop('performas', [])
 

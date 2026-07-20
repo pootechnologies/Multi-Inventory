@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
-    ProductListCreateAPIView, 
-    ProductRetrieveUpdateDeleteAPIView,
+    ProductListCreateView, 
+    ProductRetrieveUpdateDestroyView,
 
     BundleListCreateView,
     BundleDetailView,
@@ -92,8 +92,8 @@ from .views import (
 )
 
 urlpatterns = [
-    path('products', ProductListCreateAPIView.as_view(), name='products-list'),
-    path('products/<pk>', ProductRetrieveUpdateDeleteAPIView.as_view(), name='products-retrieve'),
+    path('products', ProductListCreateView.as_view(), name='products-list'),
+    path('products/<pk>', ProductRetrieveUpdateDestroyView.as_view(), name='products-retrieve'),
 
     path('bundles/', BundleListCreateView.as_view(), name='bundle-list-create'),
     path('bundles/<int:pk>/', BundleDetailView.as_view(), name='bundle-detail'),
