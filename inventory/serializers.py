@@ -967,7 +967,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 
                 # Adding it into the log with every itration
                 create_order_log(
-                    user = user.name,
+                    user = req.user.email,
                     action="Create",
                     model_name="Order",
                     object_id=order.id,
@@ -982,7 +982,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 # Adding it into the report with every itration
                 if order.customer is None and order.receipt == "Receipt":
                     create_order_report(
-                        user = user.name,
+                        user =req.user.email,
                         customer_name = "Anonymous Customer", 
                         customer_phone = " ",
                         customer_tin_number = " ",
@@ -1001,7 +1001,7 @@ class OrderSerializer(serializers.ModelSerializer):
                     )
                 elif order.customer is not None and order.receipt == "Receipt":
                     create_order_report(
-                        user = user.name,
+                        user = req.user.email,
                         customer_name = order.customer.name,
                         customer_phone = order.customer.phone,
                         customer_tin_number = order.customer.tin_number,
@@ -1020,7 +1020,7 @@ class OrderSerializer(serializers.ModelSerializer):
                     )
                 elif order.customer is not None and order.receipt == "No Receipt":
                     create_order_report(
-                        user = user.name,
+                        user =req.user.email,
                         customer_name = order.customer.name,
                         customer_phone = order.customer.phone,
                         customer_tin_number = order.customer.tin_number,
@@ -1039,7 +1039,7 @@ class OrderSerializer(serializers.ModelSerializer):
                     )
                 elif order.customer is None and order.receipt == "No Receipt":
                     create_order_report(
-                        user = user.name,
+                        user = req.user.email,
                         customer_name = "Anonymous Customer", 
                         customer_phone = " ",
                         customer_tin_number = " ",
@@ -1115,7 +1115,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 field_name="payment_status",
                 old_value=0,
                 new_value=new_payment_status,
-                user=user.name
+                user=req.user.email
             )
 
             OrderPaymentLog.objects.create(
@@ -1125,7 +1125,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 field_name="paid_amount",
                 old_value=0,
                 new_value=new_paid_amount,
-                user=user.name
+                user=req.user.email
             )
 
             OrderPaymentLog.objects.create(
@@ -1135,7 +1135,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 field_name="Unpaid Amount",
                 old_value=0,
                 new_value=new_unpaid_amount,
-                user=user.name
+                user=req.user.email
             )
 
         
@@ -1146,9 +1146,10 @@ class OrderSerializer(serializers.ModelSerializer):
         items_data = validated_data.pop('items', None)
         # print("items", items_data)
 
-        user = self.context['request'].user
-        user_role = user.role
-        user_name = user.name
+        req = self.context.get('request')
+        if req and getattr(req, 'user', None):
+            validated_data['user'] = req.user.email
+        
         # Update order fields directly
         instance.customer = validated_data.get('customer', instance.customer)
         instance.status = validated_data.get('status', instance.status)
@@ -1163,14 +1164,14 @@ class OrderSerializer(serializers.ModelSerializer):
         # print("old_paid", old_paid)
 
         # If a salesman tries to cancel, set to Pending and raise error
-        if new_status == 'Cancelled' and user_role == 'Salesman' or new_status == 'Cancelled' and user_role == 'Sales Manager':
-            instance.status = 'Pending'
-            instance.save()
+        if new_status == 'Cancelled':
+        #     instance.status = 'Pending'
+        #     instance.save()
 
             total_quantity = sum(item.quantity for item in instance.items.all())
             total_price = sum(item.price for item in instance.items.all())
             create_order_log(
-                user=user_name,
+                user=req.user.email,
                 action="Request Cancel",
                 model_name="Order",
                 object_id=instance.id,
