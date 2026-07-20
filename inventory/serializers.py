@@ -383,11 +383,17 @@ class CustomerInfoSerializer(serializers.ModelSerializer):
         model = CustomerInfo
         fields = '__all__'
     
-    def create(self, validated_data, user=None):
-        # Add the user to the validated_data if provided
-        if user:
-            validated_data['user'] = user.name
-        return super().create(validated_data)
+    # def create(self, validated_data, user=None):
+    #     # Add the user to the validated_data if provided
+    #     if user:
+    #         validated_data['user'] = user.name
+    #     return super().create(validated_data)
+    def create(self, validated_data):
+        req = self.context.get('request')
+        if req and getattr(req, 'user', None):
+            validated_data['user'] = req.user.email
+            
+        return super().create(validated_data) 
 
 class CompanyInfoSerializer(serializers.ModelSerializer):
     class Meta:
