@@ -1823,6 +1823,7 @@ class PerformaCustomerSerializer(serializers.ModelSerializer):
         req = self.context.get('request')
         if req and getattr(req, 'user', None):
             validated_data['user'] = req.user.email
+        user = req.user.email     
         
         performas_data = validated_data.pop('performas', [])
 
@@ -1864,7 +1865,7 @@ class PerformaCustomerSerializer(serializers.ModelSerializer):
                 performa_total = performa_sub_total + performa_vat
                 # Avoid duplicate 'total' key error
                 performa_data.pop('total', None)
-                performa = PerformaPerforma.objects.create(customer_level=instance, customer=customer_name, total=performa_total, sub_total=performa_sub_total, vat=performa_vat, user=user.name, **performa_data)
+                performa = PerformaPerforma.objects.create(customer_level=instance, customer=customer_name, total=performa_total, sub_total=performa_sub_total, vat=performa_vat, user=user, **performa_data)
 
                 for product_data in products_data:
                     product_id = product_data.get('id')
