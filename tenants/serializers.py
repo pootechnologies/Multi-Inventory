@@ -188,6 +188,9 @@ class GroupSerializer(serializers.ModelSerializer):
         }
 class OwnerCreateSerializer(serializers.Serializer):
     # username = serializers.CharField(required=False, allow_blank=True)
+    first_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_blank=True)
+    phone_number = serializers.CharField(required=False, allow_blank=True)
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
     # is_superuser = serializers.BooleanField(required=False, default=True)
@@ -328,7 +331,10 @@ class PublicTenantBootstrapSerializer(serializers.Serializer):
                 public_tenant, public_domain, root_user = create_public_tenant(
                     domain_url=getattr(settings, 'BASE_DOMAIN', 'localhost'),
                     tenant_extra_data={"slug": subdomain},
+                    first_name=owner.get('first_name'),
+                    last_name=owner.get('last_name'),
                     owner_email=owner.get('email'),
+                    phone_number=owner.get('phone_number'),
                     is_superuser=True,
                     is_staff=True,
                     password=owner.get('password'),
@@ -398,6 +404,9 @@ class ProvisionTenantSerializer(serializers.Serializer):
             tenant_owner = UserAccount.objects.filter(email=owner_data.get('email')).first()
             if not tenant_owner:
                 tenant_owner = UserAccount.objects.create_user(
+                    first_name=owner_data.get('first_name'),
+                    last_name=owner_data.get('last_name'),
+                    phone_number=owner_data.get('phone_number'),
                     email=owner_data.get('email'),
                     password=owner_data.get('password'),
                 )
@@ -490,8 +499,11 @@ class ProvisionTenantSerializer(serializers.Serializer):
 
 class TenantUserCreateSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
+    first_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_blank=True)
+    phone_number = serializers.CharField(required=False, allow_blank=True)
     email = serializers.EmailField()
-    username = serializers.CharField(required=False, allow_blank=True)
+    # username = serializers.CharField(required=False, allow_blank=True)
     password = serializers.CharField(write_only=True)
     is_superuser = serializers.BooleanField(default=False)
     is_staff = serializers.BooleanField(default=False)
@@ -526,6 +538,8 @@ class TenantUserCreateSerializer(serializers.Serializer):
 
 class TenantUserUpdateSerializer(serializers.Serializer):
     # username = serializers.CharField(required=False, allow_blank=True)
+    first_name = serializers.CharField(required=False, allow_blank=True)
+    last_name = serializers.CharField(required=False, allow_blank=True)
     email = serializers.EmailField(required=False)
     password = serializers.CharField(write_only=True, required=False)
     is_superuser = serializers.BooleanField(required=False)
@@ -541,6 +555,12 @@ class TenantUserUpdateSerializer(serializers.Serializer):
         # Update public profile in public schema
         print(instance.email)
         with schema_context(get_public_schema_name()):
+            if 'first_name' in validated_data:
+                instance.first_name = validated_data['first_name']
+            if 'last_name' in validated_data:
+                instance.last_name = validated_data['last_name']
+            if 'phone_number' in validated_data:
+                instance.phone_number = validated_data['phone_number']    
             if 'email' in validated_data:
                 instance.email = validated_data['email']
             if 'password' in validated_data:
@@ -582,7 +602,7 @@ class TenantUserDetailedSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserAccount
         fields = [
-            'id', 'email',
+            'id', 'first_name', 'last_name', 'email',
             'tenant_is_superuser', 'tenant_is_staff', 'tenant_groups',
         ]
 
