@@ -8,9 +8,16 @@ from tenant_users.tenants.models import TenantBase, UserProfile
 
 
 class UserAccount(UserProfile):
-    pass
+    first_name = models.CharField(max_length=150, blank=True, null=True)
+    last_name = models.CharField(max_length=150, blank=True, null=True)
+    phone_number = models.CharField(max_length=30, blank=True, null=True)
 
+    def get_full_name(self):
+        if self.first_name or self.last_name:
+            return f"{self.first_name or ''} {self.last_name or ''}".strip()
+        return super().get_full_name()
 
+    
 class Tenant(TenantBase):
     name = models.CharField(max_length=100)
     paid_until = models.DateField(null=True)
