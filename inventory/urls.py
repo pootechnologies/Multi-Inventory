@@ -26,11 +26,13 @@ from .views import (
     ListOutOFStockProductAPIView,
     CountNearExpirationDateProductAPIView,
 
-    ExpenseTypesListCreateAPIView,
-    ExpenseTypesRetrieveUpdateDeleteAPIView,
+    # ExpenseTypesListCreateAPIView,
+    ExpenseTypesListCreateView,
+    ExpenseRetrieveUpdateDestroy,
+    # ExpenseTypesRetrieveUpdateDeleteAPIView,
 
     OtherExpensesListCreateAPIView,
-    OtherExpensesRetrieveUpdateDeleteAPIView,
+    OtherExpensesRetrieveUpdateDestroy,
 
     PerformaCustomerListCreateView,
     PerformaCustomerDetailView,
@@ -125,8 +127,8 @@ urlpatterns = [
     path('stock/', ListOutOFStockProductAPIView.as_view(), name='stock-shortage-retrieve'),
     path('stock_count/', CountNearExpirationDateProductAPIView.as_view(), name='stock-shortage-count-retrieve'),
 
-    path('expense_type', ExpenseTypesListCreateAPIView.as_view(), name='expense_type-list'),
-    path('expense_type/<pk>', ExpenseTypesRetrieveUpdateDeleteAPIView.as_view(), name='expense_type-retrieve'),
+    path('expense_type', ExpenseTypesListCreateView.as_view(), name='expense_type-list'),
+    path('expense_type/<pk>', ExpenseRetrieveUpdateDestroy.as_view(), name='expense_type-retrieve'),
 
     path('performa-customers/', PerformaCustomerListCreateView.as_view(), name='performa-customer-list-create'),
     path('performa-customers/<pk>', PerformaCustomerDetailView.as_view(), name='performa-customer-list-create'),
@@ -150,7 +152,7 @@ urlpatterns = [
     path('purchase-expenses/<int:expense_id>/report', ExpenseReport.as_view(), name='purchase-expense-report'),
 
     path('other_expenses', OtherExpensesListCreateAPIView.as_view(), name='other_expenses-list'),
-    path('other_expenses/<pk>', OtherExpensesRetrieveUpdateDeleteAPIView.as_view(), name='other_expenses-retrieve'),
+    path('other_expenses/<pk>', OtherExpensesRetrieveUpdateDestroy.as_view(), name='other_expenses-retrieve'),
     path('product_report/', ProductExcelReportAPIView.as_view(), name='product-report-retrieve'),
     path('product_cost/', RetriveTotalProductCostAPIView.as_view(), name='total-product-cost-retrieve'),
 
