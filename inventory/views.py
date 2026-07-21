@@ -1040,35 +1040,22 @@ class CountNearExpirationDateProductAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class ExpenseTypesListCreateAPIView(APIView):
+class ExpenseTypesListCreateView(generics.ListCreateAPIView):
+
+    queryset = ExpenseTypes.objects.all().order_by('id')
+    serializer_class = ExpenseTypesSerializer
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
 
-    # permission_classes = (permissions.AllowAny,)
-    def get(self, request, format=None):
-        try:
-            
-            expense_type = ExpenseTypes.objects.all().order_by('id')
-            serializer = ExpenseTypesSerializer(expense_type, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)              
-                      
-        except KeyError as e:
-            return Response(
-                {"error": f"An error occurred while Retriving the Expense Types.  {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-    def post(self, request, format=None):
+    def create(self, request, *args, **kwargs):
         try:
             
 
-            serializer = ExpenseTypesSerializer(data=request.data)
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-            validated_data = serializer.validated_data
-            # serializer.create(validated_data, user=request.user)
-            serializer.create(validated_data)
+            serializer.save()
             return Response({"message": f"Expense Types created successfully."}, status=status.HTTP_201_CREATED)
                       
         except KeyError as e:
@@ -1077,215 +1064,86 @@ class ExpenseTypesListCreateAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-class ExpenseTypesRetrieveUpdateDeleteAPIView(APIView):
+    
+class ExpenseRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
+    queryset = ExpenseTypes.objects.all().order_by('id')
+    serializer_class = ExpenseTypesSerializer
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
-    # permission_classes = (permissions.AllowAny,)
-    def get(self, request, pk):
-        try:
-           
-            if not ExpenseTypes.objects.filter(id=pk).exists():
-                return Response(
-                    {"error": "Expense Types Does not Exist."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            expense_type = ExpenseTypes.objects.get(id=pk)
-            serializer = ExpenseTypesSerializer(expense_type)
-            return Response(serializer.data, status=status.HTTP_200_OK)     
-        except KeyError as e:
-            return Response(
-                {"error": f"An error occurred while Retriving the Expense Types.  {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {"message": f"Expense Types Updated successfully."},
+              status=status.HTTP_200_OK) 
 
-    def put(self, request, pk):
-        try:
-                        
-            if not ExpenseTypes.objects.filter(id=pk).exists():
-                return Response(
-                    {"error": "Expense Types Does not Exist."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            expense_type = ExpenseTypes.objects.get(id=pk)
-            serializer = ExpenseTypesSerializer(data=request.data)
-            if not serializer.is_valid():
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            validated_data = serializer.validated_data
-            serializer.update(expense_type, validated_data)
-            return Response({"message": f"Expense Types Updated successfully."}, status=status.HTTP_200_OK)      
-        except KeyError as e:
-            return Response(
-                {"error": f"An error occurred while updating the Expense Types.  {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-        
-    def patch(self, request, pk):
-        try:
-                         
-            if not ExpenseTypes.objects.filter(id=pk).exists():
-                return Response(
-                    {"error": "Expense Types Does not Exist."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            expense_type = ExpenseTypes.objects.get(id=pk)    
-            serializer = ExpenseTypesSerializer(expense_type, data=request.data, partial=True)
-            if not serializer.is_valid():
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            serializer.save()
-            return Response({"message": f"Expense Types Updated successfully."}, status=status.HTTP_200_OK)      
-        except KeyError as e:
-            return Response(
-                {"error": f"An error occurred while updating the Expense Types.  {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        # return super().update(request, *args, **kwargs)
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(
+            {
+                "message": "Expense Types deleted successfully"
+            },
+            status=status.HTTP_204_NO_CONTENT
+        )   
 
-    def delete(self, request, pk):
-        try:
-                        
-            if not ExpenseTypes.objects.filter(id=pk).exists():
-                return Response(
-                    {"error": "Expense Types Does not Exist."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            ExpenseTypes.objects.get(id=pk).delete()
-            if not ExpenseTypes.objects.filter(id=pk).exists():
-                return Response({"message": f"Expense Types Deleted successfully."},
-                    status=status.HTTP_204_NO_CONTENT   
-                )
-            else:
-                return Response(
-                    {"error": "Failed to delete an Expense Types."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )      
-        except KeyError as e:
-            return Response(
-                {"error": f"An error occurred while Delete the Expense Types.  {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-
-class OtherExpensesListCreateAPIView(APIView):
+class OtherExpensesListCreateAPIView(generics.ListCreateAPIView):
+    queryset = OtherExpenses.objects.all().order_by('-id')
+    serializer_class = OtherExpensesGetSerializer
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
-    # permission_classes = (permissions.AllowAny,)
-    def get(self, request, format=None):
+
+
+    def create(self, request, *args, **kwargs):
         try:
             
-            other_expenses = OtherExpenses.objects.all().order_by('-id')
-            serializer = OtherExpensesGetSerializer(other_expenses, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)              
-                      
-        except KeyError as e:
-            return Response(
-                {"error": f"An error occurred while Retriving Other Expenses.  {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-    def post(self, request, format=None):
-        try:
-          
-
-            serializer = OtherExpensesSerializer(data=request.data)
-            if not serializer.is_valid():
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-            validated_data = serializer.validated_data
-            # serializer.create(validated_data, user=request.user)
-            serializer.create(validated_data)
-            # return Response({"message": f"Other Expenses created successfully."}, status=status.HTTP_201_CREATED)
-            return Response({"data": serializer.data}, status=status.HTTP_201_CREATED)
-                      
-        except KeyError as e:
-            return Response(
-                {"error": f"An error occurred while creating Other Expenses.  {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-class OtherExpensesRetrieveUpdateDeleteAPIView(APIView):
-    authentication_classes = [JWTAuthentication, SessionAuthentication]
-    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
-    # permission_classes = (permissions.AllowAny,)
-    def get(self, request, pk):
-        try:
-           
-            if not OtherExpenses.objects.filter(id=pk).exists():
-                return Response(
-                    {"error": "Other Expenses Does not Exist."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            other_expenses = OtherExpenses.objects.get(id=pk)
-            serializer = OtherExpensesGetSerializer(other_expenses)
-            return Response(serializer.data, status=status.HTTP_200_OK)     
-        except KeyError as e:
-            return Response(
-                {"error": f"An error occurred while Retriving Other Expenses.  {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-    def put(self, request, pk):
-        try:
-                        
-            if not OtherExpenses.objects.filter(id=pk).exists():
-                return Response(
-                    {"error": "Other Expenses Does not Exist."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            other_expenses = OtherExpenses.objects.get(id=pk)
-            serializer = OtherExpensesSerializer(data=request.data)
-            if not serializer.is_valid():
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            validated_data = serializer.validated_data
-            serializer.update(other_expenses, validated_data)
-            return Response({"message": f"Other Expenses Updated successfully."}, status=status.HTTP_200_OK)      
-        except KeyError as e:
-            return Response(
-                {"error": f"An error occurred while updating Other Expenses  {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-        
-    def patch(self, request, pk):
-        try:
-                        
-            if not OtherExpenses.objects.filter(id=pk).exists():
-                return Response(
-                    {"error": "Other Expenses Does not Exist."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            other_expenses = OtherExpenses.objects.get(id=pk)    
-            serializer = OtherExpensesSerializer(other_expenses, data=request.data, partial=True)
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
             if not serializer.is_valid():
                 return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
             serializer.save()
-            return Response({"message": f"Other Expenses Updated successfully."}, status=status.HTTP_200_OK)      
+            return Response({"message": f"Expense Types created successfully."}, status=status.HTTP_201_CREATED)
+                      
         except KeyError as e:
             return Response(
-                {"error": f"An error occurred while updating Other Expenses.  {str(e)}"},
+                {"error": f"An error occurred while creating the Expense Types.  {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    def delete(self, request, pk):
-        try:
-                         
-            if not OtherExpenses.objects.filter(id=pk).exists():
-                return Response(
-                    {"error": "Other Expenses Does not Exist."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            OtherExpenses.objects.get(id=pk).delete()
-            if not OtherExpenses.objects.filter(id=pk).exists():
-                return Response({"message": f"Other Expenses Deleted successfully."},
-                    status=status.HTTP_204_NO_CONTENT   
-                )
-            else:
-                return Response(
-                    {"error": "Failed to delete Other Expenses."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )      
-        except KeyError as e:
-            return Response(
-                {"error": f"An error occurred while Delete Other Expenses.  {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+class OtherExpensesRetrieveUpdateDestroy(generics.RetrieveUpdateDestroyAPIView):
+    queryset = OtherExpenses.objects.all().order_by('-id')
+    serializer_class = OtherExpensesGetSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
+    
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {"message": f"Other Expenses Updated successfully."},
+              status=status.HTTP_200_OK) 
+
+        # return super().update(request, *args, **kwargs)
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(
+            {
+                "message": "Other Expenses deleted successfully"
+            },
+            status=status.HTTP_204_NO_CONTENT
+        )       
+
+
+
 
 
 class RetriveTotalProductCostAPIView(APIView):
@@ -1705,12 +1563,6 @@ class ProductLogAPIView(APIView):
 class ProductLogAPIView(APIView):
     def get(self, request):
         try:
-            # user = request.user
-            # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Salesman'):
-            #     return Response(
-            #         {"error": "You are not authorized to retrive the Product Log."},
-            #         status=status.HTTP_403_FORBIDDEN
-            #     )
             log = ProductLog.objects.all()
             serializer = ProductLogSerializer(log, many=True)
             return Response(serializer.data, status=status.HTTP_200_OK)
@@ -1753,20 +1605,11 @@ class ProductWithOutBundleAPIView(APIView):
             )
 
 
-
-
-
-# New Perfoma Views
-class PerformaPermission(BasePermission):
-    def has_permission(self, request, view):
-        user = request.user
-        return user and (getattr(user, "role", None) == "Manager" or user.is_superuser or user.role == 'Assistant Manager' or user.role == 'Customer Officer')
-
-
 class PerformaCustomerListCreateView(generics.ListCreateAPIView):
     queryset = PerformaCustomer.objects.all().order_by('-id')
-    permission_classes = [PerformaPermission]
     serializer_class = PerformaCustomerSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     pagination_class = Pagination
     filter_backends = [filters.SearchFilter]  # enable search
     search_fields = ['customer__name']  # fields to search in
@@ -1797,8 +1640,9 @@ class PerformaCustomerListCreateView(generics.ListCreateAPIView):
 
 class PerformaCustomerDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = PerformaCustomer.objects.all()
-    permission_classes = [PerformaPermission]
     serializer_class = PerformaCustomerSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1876,8 +1720,9 @@ class PerformaCustomerDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class PerformaPerformaListCreateView(generics.ListCreateAPIView):
     queryset = PerformaPerforma.objects.all().order_by('-id')
-    permission_classes = [PerformaPermission]
     serializer_class = PerformaPerformaSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     pagination_class = Pagination
     filter_backends = [filters.SearchFilter]  # enable search
     search_fields = ['customer']  # fields to search in
@@ -1934,8 +1779,9 @@ class PerformaPerformaListCreateView(generics.ListCreateAPIView):
 
 class PerformaPerformaDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = PerformaPerforma.objects.all()
-    permission_classes = [PerformaPermission]
     serializer_class = PerformaPerformaSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
 
     def get(self, request, *args, **kwargs):
         response = super().get(request, *args, **kwargs)
@@ -1961,8 +1807,9 @@ class PerformaPerformaDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class PerformaProductListCreateView(generics.ListCreateAPIView):
     queryset = PerformaProduct.objects.all()
-    permission_classes = [PerformaPermission]
     serializer_class = PerformaProductSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -1976,8 +1823,9 @@ class PerformaProductListCreateView(generics.ListCreateAPIView):
 
 class PerformaProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = PerformaProduct.objects.all()
-    permission_classes = [PerformaPermission]
     serializer_class = PerformaProductSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
 
     def update(self, request, *args, **kwargs):
         response = super().update(request, *args, **kwargs)
@@ -2006,8 +1854,9 @@ class PerformaProductDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class PurchaseSupplierListCreateView(generics.ListCreateAPIView):
     queryset = PurchaseSupplier.objects.all().order_by('-id')
-    # permission_classes = [PurchasePermission]
     serializer_class = PurchaseSupplierSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     pagination_class = Pagination
     filter_backends = [filters.SearchFilter]  # enable search
     search_fields = ['supplier__name']  # fields to search in
@@ -2034,8 +1883,9 @@ class PurchaseSupplierListCreateView(generics.ListCreateAPIView):
 
 class PurchaseSupplierDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = PurchaseSupplier.objects.all()
-    # permission_classes = [PurchasePermission]
     serializer_class = PurchaseSupplierSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -2083,18 +1933,6 @@ class PurchaseSupplierDetailView(generics.RetrieveUpdateDestroyAPIView):
                 "id": padded_id
             }, status=status.HTTP_200_OK)
 
-        # else:
-        #     data = self.get_serializer(expenses_qs, many=True).data
-        #     data = {
-        #         'count': len(data),
-        #         'results': data
-        #     }
-        
-        # # Add all results
-        # all_serializer = self.get_serializer(expenses_qs, many=True)
-        # data['all_results'] = all_serializer.data
-            
-
         # Fallback without pagination
         return Response({
             "message": "Purchase Supplier retrived successfully.",
@@ -2122,8 +1960,9 @@ class PurchaseSupplierDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class PurchaseExpenseListCreateView(generics.ListCreateAPIView):
     queryset = PurchaseExpense.objects.all().order_by('-id')
-    # permission_classes = [PurchasePermission]
     serializer_class = PurchaseExpenseSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     pagination_class = Pagination
     filter_backends = [filters.SearchFilter]  # enable search
     search_fields = ['supplier']  # fields to search in
@@ -2174,8 +2013,10 @@ class PurchaseExpenseListCreateView(generics.ListCreateAPIView):
 
 class PurchaseExpenseDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = PurchaseExpense.objects.all()
-    # permission_classes = [PurchasePermission]
     serializer_class = PurchaseExpenseSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
+
 
     def update(self, request, *args, **kwargs):
         response = super().update(request, *args, **kwargs)
@@ -2191,8 +2032,9 @@ class PurchaseExpenseDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class PurchaseProductListCreateView(generics.ListCreateAPIView):
     queryset = PurchaseProduct.objects.all()
-    # permission_classes = [PurchasePermission]
     serializer_class = PurchaseProductSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
@@ -2206,8 +2048,9 @@ class PurchaseProductListCreateView(generics.ListCreateAPIView):
 
 class PurchaseProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = PurchaseProduct.objects.all()
-    # permission_classes = [PurchasePermission]
     serializer_class = PurchaseProductSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
 
     def update(self, request, *args, **kwargs):
         response = super().update(request, *args, **kwargs)
@@ -2227,12 +2070,6 @@ class SupplierLogListView(generics.ListAPIView):
     serializer_class = SupplierPaymentLogSerializer
 
     def get_queryset(self):
-        user = self.request.user
-        # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Assistant Manager'):
-        #     return Response(
-        #         {"error": "You are not authorized to retrive the Supplier Log."},
-        #         status=status.HTTP_403_FORBIDDEN
-        #     )
         supplier_id = self.kwargs['supplier_id']
         return SupplierPaymentLog.objects.filter(supplier_id=supplier_id).order_by('-timestamp')
 
@@ -2241,12 +2078,6 @@ class ExpenseLogListView(generics.ListAPIView):
     serializer_class = ExpensePaymentLogSerializer
 
     def get_queryset(self):
-        user = self.request.user
-        # if not (user.role == 'Manager' or user.is_superuser == True or user.role == 'Assistant Manager'):
-        #     return Response(
-        #         {"error": "You are not authorized to retrive the Expense Log."},
-        #         status=status.HTTP_403_FORBIDDEN
-        #     )
         expense_id = self.kwargs['expense_id']
         return ExpensePaymentLog.objects.filter(expense_id=expense_id).order_by('-timestamp')
 
@@ -2256,7 +2087,6 @@ class SupplierReport(generics.ListAPIView):
     serializer_class = [PurchaseSupplierSerializer, SupplierPaymentLogSerializer]
 
     def get_queryset(self):
-
         supplier_id = self.kwargs['supplier_id']
         return SupplierPaymentLog.objects.filter(supplier_id=supplier_id).order_by('-timestamp')
 
@@ -2293,20 +2123,11 @@ class ExpenseReport(generics.GenericAPIView):
         }
         data = self.get_serializer(payload).data
         return Response(data, status=status.HTTP_200_OK)
-
-
-
 class SupplierReportView(generics.GenericAPIView):
     serializer_class = Supplier2ReportSerializer
 
     def get(self, request, supplier_id):
-        # user = request.user
-        # if not (user.role in ['Manager', 'Salesman', 'Sales Manager'] or user.is_superuser):
-        #     return Response(
-        #         {"error": "You are not authorized to retrieve the Supplier Report."},
-        #         status=status.HTTP_403_FORBIDDEN
-        #     )
-
+       
         start_raw = request.query_params.get('start_date')
         end_raw = request.query_params.get('end_date')
         start_date = parse_date(start_raw) if start_raw else None
@@ -2332,13 +2153,6 @@ class SupplierReportView(generics.GenericAPIView):
             expenses = expenses.filter(
                 purchase_date__range=(start_date, end_date)
             )
-        # Convert the end_date to include the entire day
-        # if start_date and end_date:
-        #     end_date_plus_1 = end_date + timezone.timedelta(days=1)
-        #     expenses = expenses.filter(
-        #         purchase_date__date__gte=start_date,
-        #         purchase_date__date__lt=end_date_plus_1
-        #     )
 
         payload = {
             "supplier": supplier,

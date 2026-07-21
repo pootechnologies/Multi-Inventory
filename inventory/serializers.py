@@ -1582,11 +1582,12 @@ class ExpenseTypesSerializer(serializers.ModelSerializer):
         model = ExpenseTypes
         fields = '__all__'
     
-    def create(self, validated_data, user=None):
+    def create(self, validated_data):
+        request = self.context.get('request')
+        user = request.user if request else None
         if user:
-            validated_data['user'] = user.name
+            validated_data['user'] = user.email
         return super().create(validated_data)
-
 class OtherExpensesSerializer(serializers.ModelSerializer):
     class Meta:
         model = OtherExpenses
