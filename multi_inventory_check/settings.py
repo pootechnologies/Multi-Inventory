@@ -81,6 +81,20 @@ MIDDLEWARE += [
     "tenants.middleware.TenantPaymentRequiredMiddleware",
 ]
 
+# Option B: Explicit list
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+    'x-schema-name',  # <-- Your custom header
+]
+
 CORS_ALLOW_ALL_ORIGINS = True
 ROOT_URLCONF = 'multi_inventory_check.urls'
 
