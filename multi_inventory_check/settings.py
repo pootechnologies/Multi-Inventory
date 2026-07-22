@@ -233,7 +233,7 @@ CHAPA_PUBLIC_KEY = "CHAPUBK_TEST-V6GJI42oSMRKHrkQgP5P8gH2I34BM3FD"
 CHAPA_SECRET_KEY ="CHASECK_TEST-vrVjpSUyuzegPSk04JSpKXSWyYOy8YYm"
 CHAPA_BASE_URL = "https://api.chapa.co/v1"
 CHAPA_VERIFY_URL = f"{CHAPA_BASE_URL}/transaction/verify/<tx_ref>"
-CHAPA_WEBHOOK_URL = "http://localhost:8000/api/payments/chapa/webhook/"
+CHAPA_WEBHOOK_URL = "http://inventory.pootechnologies.tech/api/payments/chapa/webhook/"
 # FRONTEND_PAYMENT_REDIRECT = "" # FRONT is not ready yet
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
