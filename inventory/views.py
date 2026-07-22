@@ -73,6 +73,8 @@ class Pagination(PageNumberPagination):
 class BundleListCreateView(generics.ListCreateAPIView):
     queryset = Bundle.objects.all()
     serializer_class = BundleSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     pagination_class = Pagination
     filter_backends = [filters.SearchFilter]
     search_fields = ['=bundle__name']  # 🔍 allow searching by bundle name
@@ -261,8 +263,12 @@ class SupplierRetrieveUpdateDeleteAPIView(generics.RetrieveUpdateDestroyAPIView)
         )   
 
 
-class CustomerListCreateAPIView(APIView):
-    # permission_classes = (permissions.AllowAny,)
+class CustomerListCreateAPIView(generics.ListCreateAPIView):
+    queryset = CustomerInfo.objects.all()
+    serializer_class = CustomerInfoSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
+     
     def get(self, request, format=None):
         try:
            
@@ -306,237 +312,132 @@ class CustomerListCreateAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    def post(self, request, format=None):
+    def create(self, request, *args, **kwargs):
         try:
                       
-            serializer = CustomerInfoSerializer(data=request.data)
-            if not serializer.is_valid():
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            validated_data = serializer.validated_data
-            serializer.create(validated_data)
-            return Response({"message": f"Customer Created successfully."}, status=status.HTTP_201_CREATED)     
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+            headers = self.get_success_headers(serializer.data)
+            return Response(
+                {
+                    "message": f"Customer Created successfully."
+                 }, 
+                 status=status.HTTP_201_CREATED,
+                headers=headers
+                            )     
         except KeyError as e:
             return Response(
                 {"error": f"An error occurred while creating the Customer.  {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
         
-class CustomerRetrieveUpdateDeleteAPIView(APIView):
+class CustomerRetrieveUpdateDeleteAPIView(generics.RetrieveUpdateDestroyAPIView):
     # permission_classes = (permissions.AllowAny,)
-    def get(self, request, pk):
-        try:
-                          
-            if not CustomerInfo.objects.filter(id=pk).exists():
-                return Response(
-                    {"error": "Customer Does not Exist."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            customer = CustomerInfo.objects.get(id=pk)
-            serializer = CustomerInfoSerializer(customer)
-            return Response(serializer.data, status=status.HTTP_200_OK)      
-        except KeyError as e:
-            return Response(
-                {"error": f"An error occurred while Retriving the Customer.  {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+    queryset = CustomerInfo.objects.all()
+    serializer_class = CustomerInfoSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
 
-    def put(self, request, pk):
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+                {
+                    "message": f"Customer updated successfully."
+                 }, 
+                 status=status.HTTP_200_OK
+                
+                            )   
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(
+            {
+                "message": "Customer deleted successfully"
+            },
+            status=status.HTTP_204_NO_CONTENT
+        ) 
+    
+
+class CompanyListCreateAPIView(generics.ListCreateAPIView):
+    queryset = CompanyInfo.objects.all()
+    serializer_class = CompanyInfoSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
+    
+    def create(self, request, *args, **kwargs):
         try:
-                          
-            if not CustomerInfo.objects.filter(id=pk).exists():
-                return Response(
-                    {"error": "Customer Does not Exist."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            customer = CustomerInfo.objects.get(id=pk)
-            serializer = CustomerInfoSerializer(data=request.data)
-            if not serializer.is_valid():
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            validated_data = serializer.validated_data
-            serializer.update(customer, validated_data)
-            return Response({"message": f"Customer Updated successfully."}, status=status.HTTP_200_OK)      
-        except KeyError as e:
-            return Response(
-                {"error": f"An error occurred while updating the Customer.  {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-       
-    def patch(self, request, pk):
-        try:
-                         
-            if not CustomerInfo.objects.filter(id=pk).exists():
-                return Response(
-                    {"error": "Customer Does not Exist."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            customer = CustomerInfo.objects.get(id=pk) 
-            serializer = CustomerInfoSerializer (customer, data=request.data, partial=True)
-            if not serializer.is_valid():
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                      
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
             serializer.save()
-            return Response({"message": f"Customer Updated successfully."}, status=status.HTTP_200_OK)      
+            headers = self.get_success_headers(serializer.data)
+            return Response(
+                {
+                    "message": f"Company Created successfully."
+                 }, 
+                 status=status.HTTP_201_CREATED,
+                headers=headers
+                            )     
         except KeyError as e:
             return Response(
-                {"error": f"An error occurred while updating the Customer.  {str(e)}"},
+                {"error": f"An error occurred while creating the Company.  {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    def delete(self, request, pk):
-        try:
-                          
-            if not CustomerInfo.objects.filter(id=pk).exists():
-                return Response(
-                    {"error": "Customer Does not Exist."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            CustomerInfo.objects.get(id=pk).delete()
-            if not CustomerInfo.objects.filter(id=pk).exists():
-                return Response({"message": f"Customer Deleted successfully."},
-                    status=status.HTTP_204_NO_CONTENT
-                )
-            else:
-                return Response(
-                    {"error": "Failed to delete an Customer."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )      
-        except KeyError as e:
-            return Response(
-                {"error": f"An error occurred while Deleting the Customer.  {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-
-class CompanyListCreateAPIView(APIView):
-    # permission_classes = (permissions.AllowAny,)
-    def get(self, request, format=None):
-        try:
-            
-            company = CompanyInfo.objects.all()
-            serializer = CompanyInfoSerializer(company, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-            
-                      
-        except KeyError as e:
-            return Response(
-                {"error": f"An error occurred while Retriving the Company.  {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-    def post(self, request, format=None):
-        try:
-             
-            serializer = CompanyInfoSerializer(data=request.data)
-            if not serializer.is_valid():
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-            validated_data = serializer.validated_data
-            # validated_data['user'] = user
-            serializer.create(validated_data, user=request.user)
-            return Response({"message": f"Company Created successfully."}, status=status.HTTP_201_CREATED)
-
-        except KeyError as e:
-            print(e)
-            return Response(
-                {"error": f"An error occurred while Creating the Company.  {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-
-class CompanyRetrieveUpdateDeleteAPIView(APIView):
-    # permission_classes = (permissions.AllowAny,)
-    def get(self, request, pk):
-        try:
-            # user = request.user
-                      
-            if not CompanyInfo.objects.filter(id=pk).exists():
-                return Response(
-                    {"error": "Company Does not Exist."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            company = CompanyInfo.objects.get(id=pk)
-            serializer = CompanyInfoSerializer(company)
-            return Response(serializer.data, status=status.HTTP_200_OK)      
-        except KeyError as e:
-            return Response(
-                {"error": f"An error occurred while Retriving the Company.  {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+class CompanyRetrieveUpdateDeleteAPIView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = CompanyInfo.objects.all()
+    serializer_class = CompanyInfoSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     
-    def put(self, request, pk):
+    def update(self, request, *args, **kwargs):
         try:
-           
-            if not CompanyInfo.objects.filter(id=pk).exists():
-                return Response(
-                    {"error": "Company Does not Exist."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            company = CompanyInfo.objects.get(id=pk)
-            serializer = CompanyInfoSerializer(data=request.data)
-            if not serializer.is_valid():
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            validated_data = serializer.validated_data
-            serializer.update(company, validated_data)
-            return Response({"message": f"Company Updated successfully."}, status=status.HTTP_200_OK)        
-        except KeyError as e:
+            partial = kwargs.pop('partial', False)
+            instance = self.get_object()
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
             return Response(
-                {"error": f"An error occurred while updating the Company.  {str(e)}"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
-    
-    def patch(self, request, pk):
-        try:
+                    {
+                        "message": f"Company updated successfully."
+                    }, 
+                    status=status.HTTP_200_OK
                     
-            if not CompanyInfo.objects.filter(id=pk).exists():
-                return Response(
-                    {"error": "Company Does not Exist."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            company = CompanyInfo.objects.get(id=pk)    
-            serializer = CompanyInfoSerializer(company, data=request.data, partial=True)
-            if not serializer.is_valid():
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            serializer.save()
-            return Response({"message": f"Company Updated successfully."}, status=status.HTTP_200_OK)      
+                                )
         except KeyError as e:
             return Response(
                 {"error": f"An error occurred while updating the Company.  {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-    
-    def delete(self, request, pk):
+        
+    def destroy(self, request, *args, **kwargs):
         try:
-                           
-            if not CompanyInfo.objects.filter(id=pk).exists():
-                return Response(
-                    {"error": "Company Does not Exist."},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-            CompanyInfo.objects.get(id=pk).delete()
-            if not CompanyInfo.objects.filter(id=pk).exists():
-                return Response({"message": f"Company Deleted successfully."},
-                    status=status.HTTP_204_NO_CONTENT
-                )
-            else:
-                return Response(
-                    {"error": "Failed to delete an Company."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )      
+            instance = self.get_object()
+            self.perform_destroy(instance)
+            return Response(
+                {
+                    "message": "Company deleted successfully"
+                },
+                status=status.HTTP_204_NO_CONTENT
+            )
         except KeyError as e:
             return Response(
-                {"error": f"An error occurred while Deleting the Company.  {str(e)}"},
+                {"error": f"An error occurred while deleting the Company.  {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
-
-# class OrderPermission(BasePermission):
-#     def has_permission(self, request, view):
-#         user = request.user
-        # return user and (getattr(user, "role", None) == "Manager" or user.is_superuser or user.role == 'Salesman' or user.role == 'Sales Manager')
-
-
+    
+    
 class OrderListCreatView(generics.ListCreateAPIView):
     queryset = Order.objects.filter(credit=False).order_by('-id')
-    # permission_classes = [OrderPermission]
     serializer_class = OrderSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     pagination_class = Pagination
     filter_backends = [filters.SearchFilter]
     search_fields = ['=customer__name', '=payment_status']  # 🔍 allow searching by customer's name and payment status
@@ -590,6 +491,8 @@ class OrderListCreatView(generics.ListCreateAPIView):
 class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
 
     def get(self, request, *args, **kwargs):
         response = super().get(request, *args, **kwargs)
@@ -614,6 +517,8 @@ class OrderDetailView(generics.RetrieveUpdateDestroyAPIView):
 class OrderItemListCreateView(generics.ListCreateAPIView):
     queryset = OrderItem.objects.filter(order__credit=False).order_by('id')
     serializer_class = OrderItemSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
 
     def create(self, request, *args, **kwargs):
         response = super().create(request, *args, **kwargs)
@@ -625,6 +530,8 @@ class OrderItemListCreateView(generics.ListCreateAPIView):
 class OrderItemDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = OrderItem.objects.all()
     serializer_class = OrderItemSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
 
     def update(self, request, *args, **kwargs):
         response = super().update(request, *args, **kwargs)
@@ -657,8 +564,9 @@ class OrderItemDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 class OrderCreditListAPIView(generics.ListAPIView):
     queryset = Order.objects.filter(credit=True).order_by('-id')
-    # permission_classes = [OrderPermission]
     serializer_class = OrderLightSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     pagination_class = Pagination
     filter_backends = [filters.SearchFilter]
     search_fields = ['=customer__name', '=payment_status']  # 🔍 allow searching by customer's name and payment status
@@ -693,6 +601,8 @@ class OrderCreditListAPIView(generics.ListAPIView):
 class OrderItemCreditListView(generics.ListAPIView):
     queryset = OrderItem.objects.filter(order__credit=True).order_by('id')
     serializer_class = OrderItemSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
 
     # def get_queryset(self):
     #     # only fetch id, name, email from the DB
@@ -703,6 +613,7 @@ class OrderItemCreditListView(generics.ListAPIView):
 class CategoryListCreateView(generics.ListCreateAPIView):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     
 
@@ -737,6 +648,7 @@ class CategoryRetrieveUpdateDeleteAPIView(generics.RetrieveUpdateDestroyAPIView)
     # permission_classes = (permissions.AllowAny,)
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     # 
     # lookup_field = 'id'
@@ -973,8 +885,11 @@ class OrderLogAPIView(APIView):
 
 
 class ExcelReportAPIView(APIView):
+    queryset = Report.objects.all()
+    serializer_class = OrderReportSerializer
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
+    
     def get(self, request):
         try:
           
@@ -1045,7 +960,7 @@ class ExpenseTypesListCreateView(generics.ListCreateAPIView):
     queryset = ExpenseTypes.objects.all().order_by('id')
     serializer_class = ExpenseTypesSerializer
     authentication_classes = [JWTAuthentication, SessionAuthentication]
-    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
+    permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant] 
 
     def create(self, request, *args, **kwargs):
         try:

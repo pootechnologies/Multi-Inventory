@@ -17,6 +17,8 @@ from rest_framework import generics, status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from .models import SubscriptionPlan, Tenant, UserAccount, TenantPayment
+from rest_framework.authentication import SessionAuthentication
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from .user_permission import IsTenantOwnerOrAdmin, IsTenantUser, HasModelPermissionForTenant, HasTenantPermission
 from django_tenants.utils import get_public_schema_name, schema_context
 from django.contrib.auth.models import Group, Permission
@@ -550,6 +552,7 @@ class ProvisionTenantView(generics.ListCreateAPIView):
 
 
 class AvailablePermissionsView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsTenantUser]
 
     def get(self, request):
@@ -564,6 +567,7 @@ class AvailablePermissionsView(APIView):
         return Response({'tenant_permissions': data})
 
 class CurrentTenantPermissionsView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsTenantUser]
 
     def get(self, request):
@@ -583,6 +587,7 @@ class CurrentTenantPermissionsView(APIView):
         return Response({'tenant_groups': groups, 'tenant_permissions': permissions})
 
 class TenantPermissionProtectedView(APIView):
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasTenantPermission]
     permission_required = 'inventory.change_category'
 
@@ -595,6 +600,7 @@ class TenantPermissionProtectedView(APIView):
 
 class TenantGroupCreateView(generics.ListCreateAPIView):
     serializer_class = GroupSerializer
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsTenantOwnerOrAdmin]
     pagination_class = Pagination
 
@@ -636,8 +642,8 @@ class TenantGroupCreateView(generics.ListCreateAPIView):
 
 class TenantGroupDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = GroupSerializer  
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsTenantOwnerOrAdmin]  
-    # authentication_classes = [JWTAuthentication, SessionAuthentication]
     # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
     def get_object(self):
         tenant = getattr(self.request, 'tenant', None)
@@ -665,7 +671,8 @@ class TenantGroupDetailView(generics.RetrieveUpdateDestroyAPIView):
 class TenantUserCreateView(generics.ListCreateAPIView):
     serializer_class = TenantUserCreateSerializer
     queryset = UserAccount.objects.order_by('id')
-    # permission_classes = [permissions.IsAuthenticated, IsTenantOwnerOrAdmin]
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantOwnerOrAdmin]
     pagination_class = Pagination
     def get_queryset(self):
         tenant = getattr(self.request, 'tenant', None)
@@ -717,7 +724,8 @@ class TenantUserCreateView(generics.ListCreateAPIView):
 
 class TenantUserUpdateView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = TenantUserUpdateSerializer
-    # permission_classes = [permissions.IsAuthenticated, IsTenantOwnerOrAdmin]
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantOwnerOrAdmin]
 
     # lookup by public user id or pk; ensure the user belongs to this tenant
     def get_object(self):
@@ -796,7 +804,8 @@ class UserPermissionsView(generics.GenericAPIView):
 
 class AvailablePermissionsView(generics.GenericAPIView):
     """List all available permissions in the tenant that can be assigned to groups."""
-    
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsTenantOwnerOrAdmin]
     def get(self, request):
         tenant = getattr(request, 'tenant', None)
         
