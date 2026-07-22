@@ -1605,7 +1605,8 @@ class OtherExpensesGetSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = OtherExpenses
-        fields = '__all__'
+        # fields = '__all__'
+        fields = ['id', 'expense_type', 'cost', 'created_at', 'user']
 
     def create(self, validated_data):
         request = self.context.get('request')
