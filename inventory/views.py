@@ -7,7 +7,7 @@ from rest_framework import status, permissions
 from rest_framework.permissions import BasePermission
 from rest_framework.parsers import MultiPartParser
 from django.shortcuts import get_object_or_404
-from django.db.models import F, Sum, ExpressionWrapper, DecimalField
+from django.db.models import F, Sum, ExpressionWrapper, DecimalField, FloatField
 from django.db import IntegrityError
 from django.utils import timezone
 from datetime import timedelta
@@ -1068,7 +1068,14 @@ class RetriveTotalProductCostAPIView(APIView):
         try:
            
      
-            total_product_cost = Product.objects.aggregate(total_product_cost=Sum('buying_price'))        
+            total_product_cost = Product.objects.aggregate(
+                    total_product_cost=Sum(
+                        ExpressionWrapper(
+                            F('buying_price') * F('stock'),
+                            output_field=FloatField()  # Use DecimalField() if buying_price is a DecimalField
+                        )
+                    )
+                )     
             return Response(total_product_cost, status=status.HTTP_200_OK)         
         except KeyError as e:
             return Response(
