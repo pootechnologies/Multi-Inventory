@@ -243,8 +243,8 @@ DEFAULT_FROM_EMAIL = 'poo@localhost'
 # DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # chapa settings for testing
-CHAPA_PUBLIC_KEY = "CHAPUBK_TEST-V6GJI42oSMRKHrkQgP5P8gH2I34BM3FD"
-CHAPA_SECRET_KEY ="CHASECK_TEST-vrVjpSUyuzegPSk04JSpKXSWyYOy8YYm"
+CHAPA_PUBLIC_KEY = "CHAPUBK-qWdTeATfP4dVt9CwHm51NQLFcx9VnmTi"
+CHAPA_SECRET_KEY ="CHASECK-pbGE1f1nq0Wwb6YeXBkiL62oQhCaWwhE"
 CHAPA_BASE_URL = "https://api.chapa.co/v1"
 CHAPA_VERIFY_URL = f"{CHAPA_BASE_URL}/transaction/verify/<tx_ref>"
 CHAPA_WEBHOOK_URL = "http://inventory.pootechnologies.tech/api/payments/chapa/webhook/"
