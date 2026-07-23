@@ -35,7 +35,7 @@ from .serializers import (
     ChapaInitSerializer,
     ChapaVerifySerializer,SubscriptionPlanSerializer,
     # TenantSerializer, 
-    TenantUserUpdateSerializer, userSerializer, TenantUserDetailedSerializer
+    TenantUserUpdateSerializer,userSerializer, TenantUserDetailedSerializer
 )
 from django.db import IntegrityError, transaction
 import time
@@ -61,7 +61,10 @@ class ChapaPaymentInitView(generics.GenericAPIView):
         print(f"Tenant: {tenant}")
         if not tenant:
             return Response({"detail": "No tenant context"}, status=status.HTTP_400_BAD_REQUEST)
-       
+        
+        # if TenantPayment.objects.filter(tenant=tenant, plan=plan, status='Paid & Verified').exists():
+        #     raise serializers.ValidationError("You already have a paid_verified payment for this plan.")
+         
         # Prepare data for Chapa payment initiation
         # ensure we have a valid email to send to Chapa (Chapa validates format)
         owner_email = getattr(getattr(tenant, 'owner', None), 'email', None) or (getattr(request, 'user', None) and getattr(request.user, 'email', None))
@@ -76,8 +79,8 @@ class ChapaPaymentInitView(generics.GenericAPIView):
         customization_title = (plan.name or "Subscription")[:16]       
 
         reference = str(uuid.uuid4())
-        callback_url = f"http://{tenant if tenant else 'default'}.inventory.pootechnologies.tech/api/chapa-verify/{reference}/"  # Adjust as needed for your domain and route
-        return_url = f"http://{tenant if tenant else 'default'}.inventory.pootechnologies.tech/api/chapa-verify/{reference}/"  # Adjust as needed for your domain and route
+        callback_url = f"http://{tenant if tenant else 'default'}.localhost:8000/api/chapa-verify/{reference}/"  # Adjust as needed for your domain and route
+        return_url = f"http://{tenant if tenant else 'default'}.localhost:8000/api/chapa-verify/{reference}/"  # Adjust as needed for your domain and route
         chapa_data = {
             "amount": str(plan.price),
             "currency": "ETB",
@@ -343,9 +346,23 @@ class SubscriptionPlanListCreateView(generics.ListCreateAPIView):
     pagination_class = Pagination
     serializer_class = SubscriptionPlanSerializer
     queryset = SubscriptionPlan.objects.order_by('id')
-class SubscriptionPlanDetailView(generics.RetrieveUpdateDestroyAPIView):
+class SubscriptionPlanDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = SubscriptionPlanSerializer
-    queryset = SubscriptionPlan.objects.order_by('id')    
+    queryset = SubscriptionPlan.objects.order_by('id')  
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+                {
+                    "message": f"Subscription Plan updated successfully."
+                 }, 
+                 status=status.HTTP_200_OK
+                
+                            )   
 
 class InitPaymentListView(generics.ListAPIView):
     serializer_class = PaymentInitSerializer

@@ -442,9 +442,9 @@ class OrderItemSerializer(serializers.ModelSerializer):
         
 
     def update(self, instance, validated_data):
-        user = self.context['request'].user
-        user_role = user.role
-        user_name = user.name
+        req = self.context.get('request')
+        if req and getattr(req, 'user', None):
+           user_name = req.user.email
         # Update order fields directly
         new_quantity = validated_data.get('quantity')
         new_status = validated_data.get('status')
@@ -461,7 +461,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 
         # If a salesman tries to cancel, set to Pending and raise error
-        if new_status == 'Cancelled' and user_role == 'Salesman' or new_status == 'Cancelled' and user_role == 'Sales Manager':
+        if new_status == 'Cancelled':
             instance.status = 'Pending'
             instance.save()
 
@@ -697,7 +697,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Order
-        fields = ['id', 'customer', 'customer_name', 'customer_fs', 'status', 'receipt', 'receipt_id', 'order_date', 'vat_type', 'sub_total', 'vat',  'total_amount', 'payment_status', 'paid_amount', 'unpaid_amount', 'credit', 'items', 'user', 'user_email', 'user_role', 'item_pending']
+        fields = ['id', 'customer', 'customer_name', 'customer_fs', 'status', 'receipt', 'receipt_id', 'order_date', 'vat_type', 'sub_total', 'vat',  'total_amount', 'payment_status', 'paid_amount', 'unpaid_amount', 'credit', 'items', 'user', 'user_email','item_pending']
         extra_kwargs = {
             'total_amount': {'required': False},
             'total_amount': {'read_only': True}, # Make 'total_amount' read-only
@@ -1215,9 +1215,9 @@ class OrderSerializer(serializers.ModelSerializer):
             for item_data in items_data:
                 item_id = item_data.get('id')
 
-                user = self.context['request'].user
-                user_role = user.role
-                user_name = user.name
+                req = self.context.get('request')
+                if req and getattr(req, 'user', None):
+                    user_name = req.user.email
                 # Update order fields directly
                 new_quantity = item_data.get('quantity')
                 new_status = item_data.get('status')
@@ -1237,7 +1237,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
                     # If a salesman tries to cancel, set to Pending and raise error
-                    if new_status == 'Cancelled' and user_role == 'Salesman':
+                    if new_status == 'Cancelled':
                         item.status = 'Pending'
                         item.save()
 
@@ -1491,9 +1491,13 @@ class OrderSerializer(serializers.ModelSerializer):
                     # update_payment_status_on_new_order_item(instance, [new_order_item])
 
 
-        instance.total_amount = sum(item.price for item in instance.items.all())  # Total including VAT
-        instance.sub_total = instance.total_amount / (1 + Decimal('0.15'))  # Pre-VAT amount
-        instance.vat = instance.total_amount - instance.sub_total  # VAT amount
+        # instance.total_amount = sum(item.price for item in instance.items.all())  # Total including VAT
+        # instance.sub_total = instance.total_amount / (1 + Decimal('0.15'))  # Pre-VAT amount
+        # instance.vat = instance.total_amount - instance.sub_total  # VAT amount
+        # Assuming instance.sub_total is already set (Pre-VAT amount)
+        instance.sub_total = sum(item.price for item in instance.items.all()) # Sub total including before VAT
+        instance.vat = instance.sub_total * Decimal('0.15')  # VAT amount (15%)
+        instance.total_amount = instance.sub_total + instance.vat  # Total including VAT
 
 
         if 'paid_amount' in validated_data and instance.payment_status == 'Pending':
