@@ -1491,9 +1491,13 @@ class OrderSerializer(serializers.ModelSerializer):
                     # update_payment_status_on_new_order_item(instance, [new_order_item])
 
 
-        instance.total_amount = sum(item.price for item in instance.items.all())  # Total including VAT
-        instance.sub_total = instance.total_amount / (1 + Decimal('0.15'))  # Pre-VAT amount
-        instance.vat = instance.total_amount - instance.sub_total  # VAT amount
+        # instance.total_amount = sum(item.price for item in instance.items.all())  # Total including VAT
+        # instance.sub_total = instance.total_amount / (1 + Decimal('0.15'))  # Pre-VAT amount
+        # instance.vat = instance.total_amount - instance.sub_total  # VAT amount
+        # Assuming instance.sub_total is already set (Pre-VAT amount)
+        instance.sub_total = sum(item.price for item in instance.items.all()) # Sub total including before VAT
+        instance.vat = instance.sub_total * Decimal('0.15')  # VAT amount (15%)
+        instance.total_amount = instance.sub_total + instance.vat  # Total including VAT
 
 
         if 'paid_amount' in validated_data and instance.payment_status == 'Pending':
