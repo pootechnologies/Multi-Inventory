@@ -968,7 +968,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 
                 # Adding it into the log with every itration
                 create_order_log(
-                    user = user.name,
+                    user = "user",
                     action="Create",
                     model_name="Order",
                     object_id=order.id,
@@ -983,7 +983,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 # Adding it into the report with every itration
                 if order.customer is None and order.receipt == "Receipt":
                     create_order_report(
-                        user = user.name,
+                        user = "user",
                         customer_name = "Anonymous Customer", 
                         customer_phone = " ",
                         customer_tin_number = " ",
@@ -1002,7 +1002,7 @@ class OrderSerializer(serializers.ModelSerializer):
                     )
                 elif order.customer is not None and order.receipt == "Receipt":
                     create_order_report(
-                        user = user.name,
+                        user = "user",
                         customer_name = order.customer.name,
                         customer_phone = order.customer.phone,
                         customer_tin_number = order.customer.tin_number,
@@ -1021,7 +1021,7 @@ class OrderSerializer(serializers.ModelSerializer):
                     )
                 elif order.customer is not None and order.receipt == "No Receipt":
                     create_order_report(
-                        user = user.name,
+                        user = "user",
                         customer_name = order.customer.name,
                         customer_phone = order.customer.phone,
                         customer_tin_number = order.customer.tin_number,
@@ -1040,7 +1040,7 @@ class OrderSerializer(serializers.ModelSerializer):
                     )
                 elif order.customer is None and order.receipt == "No Receipt":
                     create_order_report(
-                        user = user.name,
+                        user = "user",
                         customer_name = "Anonymous Customer", 
                         customer_phone = " ",
                         customer_tin_number = " ",
@@ -1116,7 +1116,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 field_name="payment_status",
                 old_value=0,
                 new_value=new_payment_status,
-                user=user.name
+                user="user"
             )
 
             OrderPaymentLog.objects.create(
@@ -1126,7 +1126,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 field_name="paid_amount",
                 old_value=0,
                 new_value=new_paid_amount,
-                user=user.name
+                user="user"
             )
 
             OrderPaymentLog.objects.create(
@@ -1136,7 +1136,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 field_name="Unpaid Amount",
                 old_value=0,
                 new_value=new_unpaid_amount,
-                user=user.name
+                user="user"
             )
 
         
