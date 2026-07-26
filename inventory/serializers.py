@@ -704,11 +704,13 @@ class OrderSerializer(serializers.ModelSerializer):
         }
     
     def create(self, validated_data, user=None):
-        req = self.context.get('request')
-        if req and getattr(req, 'user', None):
-            validated_data['user'] = req.user.email
-            
-      
+        # user = self.context["request"].user
+        # if user:
+        #     validated_data['user'] = user.name
+        #     validated_data['user_email'] = user.email
+        #     validated_data['user_role'] = user.role
+
+        
         receipt = validated_data['receipt']
 
         all_order = Order.objects.all().count()
@@ -739,55 +741,15 @@ class OrderSerializer(serializers.ModelSerializer):
         
         # If we get here, all validations passed - create the order
         with transaction.atomic():
-            # Track original product states so we can restore them if the order ends up with no items
-            modified_products = {}
-
-            def record_product_state(prod):
-                if prod and getattr(prod, 'pk', None) and prod.pk not in modified_products:
-                    modified_products[prod.pk] = {
-                        'stock': prod.stock,
-                        'package': prod.package,
-                        'receipt_no': prod.receipt_no,
-                    }
-
-            def log_stock_change(prod, label, before, after):
-                try:
-                    print(f"[OrderStock] {label} | {prod.name} (id={prod.pk}) | stock {before} -> {after}")
-                except Exception:
-                    logger.exception("Failed to print stock change debug line")
-
             
             # First validate all items before creating anything
-            for item_data in items_data:
-                product = item_data['product']
-                if product.stock is None:
-                    raise serializers.ValidationError({
-                        "error": f"Product {product.name} stock is not available."
-                    })
             
-            # Collect product ids (and bundle component ids) and lock them
-            product_ids = set()
-            bundle_product_ids = set()
-            for item_data in items_data:
-                p = item_data.get('product')
-                if p and getattr(p, 'pk', None):
-                    product_ids.add(p.pk)
-                    if getattr(p, 'is_bundle', False):
-                        bundle_product_ids.add(p.pk)
-
-            component_ids = set()
-            if bundle_product_ids:
-                component_ids.update(
-                    Component.objects.filter(bundle_id__in=bundle_product_ids).values_list('component_id', flat=True)
-                )
-
-            lock_ids = sorted(product_ids.union(component_ids))
-            locked_products_map = {}
-            if lock_ids:
-                logger.debug(f"Locking product rows: {lock_ids}")
-                locked_qs = Product.objects.select_for_update().filter(pk__in=lock_ids).order_by('pk')
-                locked_products_map = {p.pk: p for p in locked_qs}
-
+            # for item_data in items_data:
+            #     product = item_data['product']
+            #     if product.stock is None:
+            #         raise serializers.ValidationError({
+            #             "error": f"Product {product.name} stock is not available."
+            #         })
 
             # Create the Order instance           
             order = Order.objects.create(**validated_data)
@@ -796,186 +758,151 @@ class OrderSerializer(serializers.ModelSerializer):
             for item_data in items_data:
                 # This will call OrderItemSerializer.validate() for each item
                 product = item_data['product']
-                # Use locked product instance if available
-                if getattr(product, 'pk', None) and product.pk in locked_products_map:
-                    product = locked_products_map[product.pk]
-                    # replace the reference in item_data so downstream code uses locked instance
-                    item_data['product'] = product
-                # record original product state before any mutation
-                record_product_state(product)
                 quantity = item_data.get('quantity')
                 receipt = order.receipt
                 item_data['item_receipt'] = receipt
                 package = item_data.get('package')
                 unit_price = item_data.get('unit_price', product.selling_price)  # Default to product's selling price if not provided
                 item_data['unit'] = item_data.get('unit', product.unit)
-                product_bundle = product.is_bundle
+                # product_bundle = product.is_bundle
 
 
                 # If product is a bundle, reduce stock from its components and the bundle itself
-                if product.is_bundle:
-                    try:
-                        bundle = Bundle.objects.get(bundle=product)
-                    except Bundle.DoesNotExist:
-                        raise serializers.ValidationError({"error": f"Bundle not found for product {product.name}"})
+                # if product.is_bundle:
+                #     try:
+                #         bundle = Bundle.objects.get(bundle=product)
+                #     except Bundle.DoesNotExist:
+                #         raise serializers.ValidationError({"error": f"Bundle not found for product {product.name}"})
 
-                    # Reduce stock of the bundle product itself
-                    if product.stock < quantity:
-                        raise serializers.ValidationError({
-                            "error": f"Not enough stock for bundle {product.name}. Required {quantity}, available {product.stock}."
-                        })
-                    bundle_before = product.stock
-                    product.stock -= quantity
-                    product.save()
-                    log_stock_change(product, "bundle", bundle_before, product.stock)
+                #     # Reduce stock of the bundle product itself
+                #     if product.stock < quantity:
+                #         raise serializers.ValidationError({
+                #             "error": f"Not enough stock for bundle {product.name}. Required {quantity}, available {product.stock}."
+                #         })
+                #     product.stock -= quantity
+                #     product.save()
 
+                #     # Reduce stock of the components
+                #     for comp in bundle.components.all():
+                #         component_product = comp.component
+                #         required_qty = comp.quantity * quantity  # Multiply by ordered quantity
+                #         if component_product.stock < required_qty:
+                #             raise serializers.ValidationError({
+                #                 "error": f"Not enough stock for component {component_product.name}. Required {required_qty}, available {component_product.stock}."
+                #             })
+                #         # Reduce stock and save
+                #         component_product.stock -= required_qty
+                #         component_product.save()
+                
+                # else:
+                piece = product.piece
 
-                    # Reduce stock of the components
-                    for comp in bundle.components.all():
-                        component_product = comp.component
-                        # Prefer the locked component instance if available
-                        if getattr(component_product, 'pk', None) and component_product.pk in locked_products_map:
-                            component_product = locked_products_map[component_product.pk]
-                        # record state for component product
-                        record_product_state(component_product)
-                        required_qty = comp.quantity * quantity  # Multiply by ordered quantity
-                        if component_product.stock < required_qty:
+                if receipt == "Receipt":
+
+                    if package:
+                        if product.package >= package:
+                            product.package -= package
+                            quantity = package * product.piece
+                            item_data['quantity'] = quantity
+                            if product.stock is not None and quantity > product.stock:
+                                raise serializers.ValidationError({
+                                    "error": f"Insufficient stock for {product.name}. Available stock is {product.package}, but {quantity} was requested."
+                                })
+                            if product.stock is not None:
+                                product.stock -= quantity
+                            if product.receipt_no is not None:
+                                product.receipt_no -= quantity
+                            product.save()  # Save the product instance
+
+                        elif product.package < package:
+                            raise serializers.ValidationError({"error": f"Insufficient stock for {product.name}. Available stock is {product.stock}, but {quantity} was requested."})   
+                    
+                    elif package is None:
+                        if product.stock is not None and quantity > product.stock:
                             raise serializers.ValidationError({
-                                "error": f"Not enough stock for component {component_product.name}. Required {required_qty}, available {component_product.stock}."
+                                "error": f"Insufficient stock for {product.name}. Available stock is {product.stock}, but {quantity} was requested."
                             })
-                        # Reduce stock and save
-                        component_before = component_product.stock
-                        component_product.stock -= required_qty
-                        component_product.save()
-                        log_stock_change(component_product, "component", component_before, component_product.stock)
-                
-                
-                else:
-                    piece = product.piece
-
-                    if receipt == "Receipt":
-
-                        if package:
-                            if product.package >= package:
-                                before_stock = product.stock
-                                product.package -= package
-                                quantity = package * product.piece
-                                item_data['quantity'] = quantity
-                                if quantity >  product.stock:
-                                    raise serializers.ValidationError({
-                                        "error": f"Insufficient stock for {product.name}. Available stock is {product.package}, but {quantity} was requested."
-                                    })
-                                product.stock -= quantity
-                                if product.receipt_no is not None:
-                                    product.receipt_no -= quantity
-                                product.save()  # Save the product instance
-                                log_stock_change(product, "product", before_stock, product.stock)
-
-
-                            elif product.package < package:
-                                raise serializers.ValidationError({"error": f"Insufficient stock for {product.name}. Available stock is {product.stock}, but {quantity} was requested."})   
-                        
-                        elif package is None:
-                            if quantity >  product.stock:
-                                raise serializers.ValidationError({
-                                    "error": f"Insufficient stock for {product.name}. Available stock is {product.stock}, but {quantity} was requested."
-                                })
-                            # Calculate the remaining stock and adjust the package count
-                            before_stock = product.stock
+                        # Calculate the remaining stock and adjust the package count
+                        if product.stock is not None:
                             remaining_stock = product.stock - quantity
-                            if product.piece is not None and product.package is not None:
-                                # If piece and package are defined, calculate remaining packages
-                                remaining_packages = remaining_stock // piece  # Calculate remaining packages
-                                product.package = remaining_packages
+                        if product.piece is not None and product.package is not None:
+                            # If piece and package are defined, calculate remaining packages
+                            remaining_packages = remaining_stock // piece  # Calculate remaining packages
+                            product.package = remaining_packages
+                            if product.stock is not None:
                                 product.stock = remaining_stock
-                                product.save()
-                                if product.receipt_no is not None:
-                                    # If receipt_no is defined, reduce it by the quantity
-                                    product.receipt_no -= quantity
-                                    product.save()  # Save the product instance
-                                log_stock_change(product, "product", before_stock, product.stock)
-                            else:
-                                before_stock = product.stock
-                                product.stock -= quantity
-                                product.save()  # Save the product instance  
-                                if product.receipt_no is not None:
-                                    # If receipt_no is defined, reduce it by the quantity
-                                    product.receipt_no -= quantity
-                                    product.save()  # Save the product instance  
-                                log_stock_change(product, "product", before_stock, product.stock)
-
-                    elif receipt == "No Receipt":
-                        if package:
-                            if product.package >= package:
-                                before_stock = product.stock
-                                product.package -= package
-                                quantity = package * product.piece
-                                item_data['quantity'] = quantity
-                                if quantity >  product.stock:
-                                    # This shows the quantity as long as it is not greater than stock
-                                    raise serializers.ValidationError({
-                                        "error": f"Insufficient quantity for {product.name}. Available stock is {product.stock}, but {quantity} quantity was requested."
-                                    })
-                                product.stock -= quantity
+                            product.save()
+                            if product.receipt_no is not None:
+                                # If receipt_no is defined, reduce it by the quantity
+                                product.receipt_no -= quantity
                                 product.save()  # Save the product instance
-                                log_stock_change(product, "product", before_stock, product.stock)
+                        else:
+                            if product.stock is not None:
+                                product.stock -= quantity
+                            product.save()  # Save the product instance  
+                            if product.receipt_no is not None:
+                                # If receipt_no is defined, reduce it by the quantity
+                                product.receipt_no -= quantity
+                                product.save()  # Save the product instance      
 
-                            elif product.package < package:
-                                # This shows the quantity as long as it is not greater than stock
-                                raise serializers.ValidationError({"error": f"Insufficient package for {product.name}. Available package is {product.package}, but {package} package was requested."})   
-                        
-                        elif package is None:
-                            if quantity >  product.stock:
+                elif receipt == "No Receipt":
+                    if package:
+                        if product.package >= package:
+                            product.package -= package
+                            quantity = package * product.piece
+                            item_data['quantity'] = quantity
+                            if product.stock is not None and quantity > product.stock:
                                 # This shows the quantity as long as it is not greater than stock
                                 raise serializers.ValidationError({
-                                    "error": f"Insufficient stock for {product.name}. Available stock is {product.stock}, but {quantity} quantity was requested."
+                                    "error": f"Insufficient quantity for {product.name}. Available stock is {product.stock}, but {quantity} quantity was requested."
                                 })
-                            # Calculate the remaining stock and adjust the package count
-                            before_stock = product.stock
-                            remaining_stock = product.stock - quantity
-                            if product.piece is not None and product.package is not None:
-                                # If piece and package are defined, calculate remaining packages
-                                remaining_packages = remaining_stock // piece  # Calculate remaining packages
-                                product.package = remaining_packages
-                                product.stock = remaining_stock
-                                product.save()
-                                log_stock_change(product, "product", before_stock, product.stock)
-                                
-                            else:
-                                before_stock = product.stock
+                            if product.stock is not None:
                                 product.stock -= quantity
-                                product.save()  # Save the product instance  
-                                log_stock_change(product, "product", before_stock, product.stock) 
+                            product.save()  # Save the product instance
+
+                        elif product.package < package:
+                            # This shows the quantity as long as it is not greater than stock
+                            raise serializers.ValidationError({"error": f"Insufficient package for {product.name}. Available package is {product.package}, but {package} package was requested."})   
+                    
+                    elif package is None:
+                        if product.stock is not None and quantity > product.stock:
+                            # This shows the quantity as long as it is not greater than stock
+                            raise serializers.ValidationError({
+                                "error": f"Insufficient stock for {product.name}. Available stock is {product.stock}, but {quantity} quantity was requested."
+                            })
+                        # Calculate the remaining stock and adjust the package count
+                        if product.stock is not None:
+                            remaining_stock = product.stock - quantity
+                        if product.piece is not None and product.package is not None:
+                            # If piece and package are defined, calculate remaining packages
+                            remaining_packages = remaining_stock // piece  # Calculate remaining packages
+                            product.package = remaining_packages
+                            if product.stock is not None:
+                                product.stock = remaining_stock
+                            product.save()
+                            
+                        else:
+                            if product.stock is not None:
+                                product.stock -= quantity
+                            product.save()  # Save the product instance  
 
                 total_price = unit_price * item_data['quantity']
                 vat = total_price * Decimal(0.15)
                 receipt_total_price = total_price + vat
 
                 # Create the OrderItem and associate with the Order
-                # OrderItem.objects.create(order=order, price=total_price, **item_data)
-                
-                try:
-                    logger.debug("Creating OrderItem for order=%s product=%s quantity=%s", order.pk, getattr(item_data.get('product'), 'pk', None), item_data.get('quantity'))
-                except Exception:
-                    logger.exception("Failed to log OrderItem create intent")
-
-                new_item = OrderItem.objects.create(order=order, price=total_price, **item_data)
-
-                try:
-                    logger.debug("Created OrderItem id=%s for order=%s", getattr(new_item, 'id', None), order.pk)
-                except Exception:
-                    logger.exception("Failed to log OrderItem creation")
-                
+                OrderItem.objects.create(order=order, price=total_price, **item_data)
                 # Adding it into the log with every itration
                 create_order_log(
-                    user = "user",
+                    # user = user.name,
+                    user = "User",
                     action="Create",
                     model_name="Order",
                     object_id=order.id,
                     customer_info = order.customer,
                     product_name = item_data['product'].name,
                     product_specification = item_data['product'].specification,
-                    product_bundle = product_bundle,
+                    # product_bundle = product_bundle,
                     quantity = item_data['quantity'],
                     price = total_price,
                     changes_on_update = "Created Order Item",
@@ -983,7 +910,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 # Adding it into the report with every itration
                 if order.customer is None and order.receipt == "Receipt":
                     create_order_report(
-                        user = "user",
+                        user = "User",
                         customer_name = "Anonymous Customer", 
                         customer_phone = " ",
                         customer_tin_number = " ",
@@ -1002,7 +929,7 @@ class OrderSerializer(serializers.ModelSerializer):
                     )
                 elif order.customer is not None and order.receipt == "Receipt":
                     create_order_report(
-                        user = "user",
+                        user = "User",
                         customer_name = order.customer.name,
                         customer_phone = order.customer.phone,
                         customer_tin_number = order.customer.tin_number,
@@ -1021,7 +948,7 @@ class OrderSerializer(serializers.ModelSerializer):
                     )
                 elif order.customer is not None and order.receipt == "No Receipt":
                     create_order_report(
-                        user = "user",
+                        user = "User",
                         customer_name = order.customer.name,
                         customer_phone = order.customer.phone,
                         customer_tin_number = order.customer.tin_number,
@@ -1040,7 +967,7 @@ class OrderSerializer(serializers.ModelSerializer):
                     )
                 elif order.customer is None and order.receipt == "No Receipt":
                     create_order_report(
-                        user = "user",
+                        user = "User",
                         customer_name = "Anonymous Customer", 
                         customer_phone = " ",
                         customer_tin_number = " ",
@@ -1060,35 +987,6 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
             order.save()
-            try:
-                logger.debug("Final empty-order check for order=%s items_count=%s modified_products=%s", order.pk, order.items.count(), list(modified_products.keys()))
-            except Exception:
-                logger.exception("Failed to log final empty-order check for order=%s", getattr(order, 'pk', None))
-
-            # Final safety check: if the created order has no items, restore modified products and delete the order
-            if not order.items.exists():
-                # restore product states
-                for pid, vals in modified_products.items():
-                    try:
-                        p = Product.objects.get(pk=pid)
-                        p.stock = vals.get('stock')
-                        p.package = vals.get('package')
-                        p.receipt_no = vals.get('receipt_no')
-                        p.save()
-                        logger.debug(f"Rolled back product id={pid} to stock={p.stock} package={p.package}")
-                    except Exception:
-                        logger.exception(f"Failed rolling back product id={pid}")
-
-                # delete the order to avoid orphan
-                try:
-                    if order.pk and Order.objects.filter(pk=order.pk).exists():
-                        order.delete()
-                        logger.debug(f"Deleted empty order id={order.pk} after rollback")
-                except Exception:
-                    logger.exception("Failed deleting empty order")
-
-                raise serializers.ValidationError({"error": "Order has no items; inventory changes rolled back."})
-            
             
             total_amount = Decimal(str(order.total_amount or 0))  # Convert to Decimal
             paid = Decimal(str(paid_amount or 0))  # Convert to Decimal
@@ -1116,7 +1014,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 field_name="payment_status",
                 old_value=0,
                 new_value=new_payment_status,
-                user="user"
+                user="User"
             )
 
             OrderPaymentLog.objects.create(
@@ -1126,7 +1024,7 @@ class OrderSerializer(serializers.ModelSerializer):
                 field_name="paid_amount",
                 old_value=0,
                 new_value=new_paid_amount,
-                user="user"
+                user="User"
             )
 
             OrderPaymentLog.objects.create(
@@ -1136,12 +1034,11 @@ class OrderSerializer(serializers.ModelSerializer):
                 field_name="Unpaid Amount",
                 old_value=0,
                 new_value=new_unpaid_amount,
-                user="user"
+                user="User"
             )
 
         
         return order
-
     
     def update(self, instance, validated_data):
         items_data = validated_data.pop('items', None)
