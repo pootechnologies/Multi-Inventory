@@ -1141,8 +1141,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
         
         return order
-
-
+    
     def update(self, instance, validated_data):
         items_data = validated_data.pop('items', None)
         # print("items", items_data)
