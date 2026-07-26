@@ -902,7 +902,7 @@ class OrderSerializer(serializers.ModelSerializer):
                     customer_info = order.customer,
                     product_name = item_data['product'].name,
                     product_specification = item_data['product'].specification,
-                    product_bundle = "PB",
+                    product_bundle = False,
                     quantity = item_data['quantity'],
                     price = total_price,
                     changes_on_update = "Created Order Item",
