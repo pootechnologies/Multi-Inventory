@@ -764,35 +764,35 @@ class OrderSerializer(serializers.ModelSerializer):
                 package = item_data.get('package')
                 unit_price = item_data.get('unit_price', product.selling_price)  # Default to product's selling price if not provided
                 item_data['unit'] = item_data.get('unit', product.unit)
-                # product_bundle = product.is_bundle
+                product_bundle = product.is_bundle
 
 
-                # If product is a bundle, reduce stock from its components and the bundle itself
-                # if product.is_bundle:
-                #     try:
-                #         bundle = Bundle.objects.get(bundle=product)
-                #     except Bundle.DoesNotExist:
-                #         raise serializers.ValidationError({"error": f"Bundle not found for product {product.name}"})
+                If product is a bundle, reduce stock from its components and the bundle itself
+                if product.is_bundle:
+                    try:
+                        bundle = Bundle.objects.get(bundle=product)
+                    except Bundle.DoesNotExist:
+                        raise serializers.ValidationError({"error": f"Bundle not found for product {product.name}"})
 
-                #     # Reduce stock of the bundle product itself
-                #     if product.stock < quantity:
-                #         raise serializers.ValidationError({
-                #             "error": f"Not enough stock for bundle {product.name}. Required {quantity}, available {product.stock}."
-                #         })
-                #     product.stock -= quantity
-                #     product.save()
+                    # Reduce stock of the bundle product itself
+                    if product.stock < quantity:
+                        raise serializers.ValidationError({
+                            "error": f"Not enough stock for bundle {product.name}. Required {quantity}, available {product.stock}."
+                        })
+                    product.stock -= quantity
+                    product.save()
 
-                #     # Reduce stock of the components
-                #     for comp in bundle.components.all():
-                #         component_product = comp.component
-                #         required_qty = comp.quantity * quantity  # Multiply by ordered quantity
-                #         if component_product.stock < required_qty:
-                #             raise serializers.ValidationError({
-                #                 "error": f"Not enough stock for component {component_product.name}. Required {required_qty}, available {component_product.stock}."
-                #             })
-                #         # Reduce stock and save
-                #         component_product.stock -= required_qty
-                #         component_product.save()
+                    # Reduce stock of the components
+                    for comp in bundle.components.all():
+                        component_product = comp.component
+                        required_qty = comp.quantity * quantity  # Multiply by ordered quantity
+                        if component_product.stock < required_qty:
+                            raise serializers.ValidationError({
+                                "error": f"Not enough stock for component {component_product.name}. Required {required_qty}, available {component_product.stock}."
+                            })
+                        # Reduce stock and save
+                        component_product.stock -= required_qty
+                        component_product.save()
                 
                 # else:
                 piece = product.piece
@@ -902,7 +902,7 @@ class OrderSerializer(serializers.ModelSerializer):
                     customer_info = order.customer,
                     product_name = item_data['product'].name,
                     product_specification = item_data['product'].specification,
-                    product_bundle = False,
+                    product_bundle = product.is_bundle,
                     quantity = item_data['quantity'],
                     price = total_price,
                     changes_on_update = "Created Order Item",
