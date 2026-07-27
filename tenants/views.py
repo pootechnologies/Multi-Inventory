@@ -3,6 +3,12 @@ import json
 import hmac
 import hashlib
 from django.conf import settings
+from django.core.mail import send_mail
+from django.contrib.auth.password_validation import validate_password
+from django.contrib.auth.tokens import PasswordResetTokenGenerator
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.urls import reverse
 import uuid
@@ -10,17 +16,19 @@ import uuid
 from multi_inventory_check.settings import CHAPA_PUBLIC_KEY, CHAPA_BASE_URL, CHAPA_SECRET_KEY, CHAPA_VERIFY_URL
 from django.utils import timezone
 from datetime import timedelta
-from django.http import Http404, JsonResponse
+from django.http import Http404, JsonResponse, HttpResponse
+from html import escape
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.core.validators import validate_email
 from rest_framework import generics, status, permissions
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from .models import SubscriptionPlan, Tenant, UserAccount, TenantPayment
+from .models import SubscriptionPlan, Tenant, UserAccount, TenantRegistration, TenantPayment, BusinessCategory
 from rest_framework.authentication import SessionAuthentication
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from .user_permission import IsTenantOwnerOrAdmin, IsTenantUser, HasModelPermissionForTenant, HasTenantPermission
 from django_tenants.utils import get_public_schema_name, schema_context
+from tenant_users.tenants.tasks import provision_tenant
 from django.contrib.auth.models import Group, Permission
 from inventory.views import Pagination
 
@@ -35,12 +43,223 @@ from .serializers import (
     ChapaInitSerializer,
     ChapaVerifySerializer,SubscriptionPlanSerializer,
     # TenantSerializer, 
-    TenantUserUpdateSerializer,userSerializer, TenantUserDetailedSerializer
+    TenantUserUpdateSerializer,userSerializer, TenantUserDetailedSerializer,BusinessCategorySerializer
 )
+from rest_framework import filters
 from django.db import IntegrityError, transaction
 import time
 import logging
 
+class BusinessCategoryListCreateView(generics.ListCreateAPIView):
+    serializer_class = BusinessCategorySerializer
+    permission_classes = [permissions.AllowAny]  # Adjust permissions as needed
+
+    def get_queryset(self):
+        return BusinessCategory.objects.all()
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+class BusinessCategoryDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = BusinessCategorySerializer
+    permission_classes = [permissions.AllowAny]
+
+    def get_queryset(self):
+        return BusinessCategory.objects.all()
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response(serializer.data,status=status.HTTP_200_OK)
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+class EmailVerificationTokenGenerator(PasswordResetTokenGenerator):
+    """A token which becomes invalid as soon as the address is verified."""
+    def _make_hash_value(self, user, timestamp):
+        return f"{user.pk}{user.password}{user.last_login}{timestamp}{user.email}{user.is_verified}"
+
+
+email_verification_token = EmailVerificationTokenGenerator()
+
+
+def _public_user_from_uid(uidb64):
+    try:
+        user_id = urlsafe_base64_decode(uidb64).decode()
+        with schema_context(get_public_schema_name()):
+            return UserAccount.objects.filter(pk=user_id).first()
+    except (TypeError, ValueError, OverflowError, UnicodeDecodeError):
+        return None
+
+
+def _send_verification_email(request, user):
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = email_verification_token.make_token(user)
+    verification_url = getattr(
+        settings, "EMAIL_VERIFICATION_URL", "https://inventory.pootechnologies.tech/tenants/email/verify/"
+    )
+    verification_url = f"{verification_url}?uid={uid}&token={token}"
+    send_mail(
+        "Verify your email to create your tenant",
+        f"Verify your email before we create your tenant: {verification_url}",
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email],
+        fail_silently=False,
+    )
+
+
+class EmailVerificationView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        """Allow a user to verify directly by clicking the email link."""
+        return self._verify(request.query_params.get("uid"), request.query_params.get("token"))
+
+    def post(self, request):
+        return self._verify(request.data.get("uid"), request.data.get("token"))
+
+    def _verify(self, uid, token):
+        user = _public_user_from_uid(uid)
+        if not user or not token or not email_verification_token.check_token(user, token):
+            return Response({"detail": "The verification link is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST)
+
+        with schema_context(get_public_schema_name()):
+            registration = TenantRegistration.objects.select_related("owner").filter(owner=user, verified_at__isnull=True).first()
+            if not registration:
+                return Response({"detail": "No pending tenant registration was found."}, status=status.HTTP_400_BAD_REQUEST)
+            if Tenant.objects.filter(schema_name=registration.schema_name).exists():
+                return Response({"detail": "A tenant with this subdomain already exists."}, status=status.HTTP_409_CONFLICT)
+
+            try:
+                with transaction.atomic():
+                    user.is_verified = True
+                    user.is_active = True
+                    user.save(update_fields=["is_verified", "is_active"])
+                    paid_until = timezone.now().date() + timedelta(days=7) if registration.on_trial else None
+                    tenant, _domain = provision_tenant(
+                        tenant_name=registration.company_name,
+                        tenant_extra_data={"paid_until": paid_until, "on_trial": registration.on_trial},
+                        tenant_slug=registration.schema_name,
+                        schema_name=registration.schema_name,
+                        business_category=registration.business_category,
+                        owner=user,
+                        is_superuser=True,
+                        is_staff=True,
+                    )
+                    registration.verified_at = timezone.now()
+                    registration.save(update_fields=["verified_at"])
+            except IntegrityError:
+                return Response({"detail": "Tenant provisioning could not be completed."}, status=status.HTTP_409_CONFLICT)
+            except Exception as exc:
+                logging.exception("Tenant provisioning after email verification failed")
+                detail = "Verification succeeded, but provisioning failed. Please contact support."
+                if settings.DEBUG:
+                    detail = f"Provisioning failed: {exc}"
+                return Response({"detail": detail}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"message": "Email verified and tenant provisioned.", "tenant": {"id": tenant.id, "schema_name": tenant.schema_name}})
+
+
+class EmailVerificationResendView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = request.data.get("email", "")
+        try:
+            validate_email(email)
+        except DjangoValidationError:
+            return Response({"email": ["Enter a valid email address."]}, status=status.HTTP_400_BAD_REQUEST)
+        with schema_context(get_public_schema_name()):
+            user = UserAccount.objects.filter(email__iexact=email, is_verified=False).first()
+            if user and TenantRegistration.objects.filter(owner=user, verified_at__isnull=True).exists():
+                _send_verification_email(request, user)
+        return Response({"message": "If a pending registration exists, a verification link has been sent."})
+
+
+class PasswordResetRequestView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = request.data.get("email", "")
+        try:
+            validate_email(email)
+        except DjangoValidationError:
+            return Response({"email": ["Enter a valid email address."]}, status=status.HTTP_400_BAD_REQUEST)
+
+        with schema_context(get_public_schema_name()):
+            user = UserAccount.objects.filter(email__iexact=email).first()
+            if user:
+                uid = urlsafe_base64_encode(force_bytes(user.pk))
+                token = PasswordResetTokenGenerator().make_token(user)
+                frontend_url = getattr(settings, "FRONTEND_PASSWORD_RESET_URL", "https://inventory.pootechnologies.tech/tenants/password/reset-password")
+                send_mail("Reset your password", f"Reset your password: {frontend_url}?uid={uid}&token={token}", settings.DEFAULT_FROM_EMAIL, [user.email])
+        # Always identical to avoid revealing whether the email has an account.
+        return Response({"message": "If that email exists, a password-reset link has been sent."})
+
+
+class PasswordResetConfirmView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        """A minimal reset page for deployments without a separate frontend."""
+        uid = escape(request.query_params.get("uid", ""))
+        token = escape(request.query_params.get("token", ""))
+        return HttpResponse(
+            f'''<!doctype html><html><body>
+                   <h1>Reset password</h1>
+                     <form method="post">
+                     <input type="hidden" name="uid" value="{uid}">
+                     <input type="hidden" name="token" value="{token}">
+                     <label>New password <input type="password" name="password" required></label>
+                     <button type="submit">Reset password</button>
+                     </form></body></html>''',
+            content_type="text/html",
+        )
+
+    def post(self, request):
+        payload = request.data if request.content_type == "application/json" else request.POST
+        user = _public_user_from_uid(payload.get("uid"))
+        token = payload.get("token")
+        password = payload.get("password")
+        if not user or not token or not PasswordResetTokenGenerator().check_token(user, token):
+            return Response({"detail": "The reset link is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST)
+        if not password:
+            return Response({"password": ["Password is required."]}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            validate_password(password, user)
+        except DjangoValidationError as exc:
+            return Response({"password": list(exc.messages)}, status=status.HTTP_400_BAD_REQUEST)
+        with schema_context(get_public_schema_name()):
+            user.set_password(password)
+            user.save(update_fields=["password"])
+        return Response({"message": "Password reset successfully."})
+    
+# class PasswordResetConfirmView(APIView):
+#     permission_classes = [permissions.AllowAny]
+
+#     def post(self, request):
+#         user = _public_user_from_uid(request.data.get("uid"))
+#         token = request.data.get("token")
+#         password = request.data.get("password")
+#         if not user or not token or not PasswordResetTokenGenerator().check_token(user, token):
+#             return Response({"detail": "The reset link is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST)
+#         if not password:
+#             return Response({"password": ["Password is required."]}, status=status.HTTP_400_BAD_REQUEST)
+#         try:
+#             validate_password(password, user)
+#         except DjangoValidationError as exc:
+#             return Response({"password": list(exc.messages)}, status=status.HTTP_400_BAD_REQUEST)
+#         with schema_context(get_public_schema_name()):
+#             user.set_password(password)
+#             user.save(update_fields=["password"])
+#         return Response({"message": "Password reset successfully."})    
 
 class ChapaPaymentInitView(generics.GenericAPIView):
     serializer_class = ChapaInitSerializer

@@ -2,7 +2,7 @@ from django.utils import timezone
 from datetime import timedelta
 import uuid
 from rest_framework import serializers
-from .models import Tenant, Domain, UserAccount, SubscriptionPlan, TenantPayment 
+from .models import Tenant, Domain, UserAccount, TenantRegistration, SubscriptionPlan, TenantPayment, BusinessCategory
 from django.core.management import call_command
 from django_tenants.utils import schema_context, tenant_context, get_public_schema_name
 from django.conf import settings
@@ -26,6 +26,7 @@ class ChapaInitSerializer(serializers.Serializer):
     subscriptionPlan = SubscriptionPlanSerializer(source='plan', read_only=True)
     provider = serializers.CharField(
         read_only=True)
+
 class ChapaVerifySerializer(serializers.Serializer):
     # reference = serializers.CharField(required=True)
     class Meta:
@@ -33,17 +34,21 @@ class ChapaVerifySerializer(serializers.Serializer):
         fields = ['id','plan']      
 class PaymentInitSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
+    tenant = serializers.CharField(read_only=True)
     plan = serializers.PrimaryKeyRelatedField(
         queryset=SubscriptionPlan.objects.all(),
         required=True
     )
     tenant = serializers.CharField( 
         read_only=True)
+    provider = serializers.CharField(read_only=True)
+    referance = serializers.CharField(read_only=True)
     subscriptionPlan = SubscriptionPlanSerializer(source='plan', read_only=True)
     provider = serializers.CharField(
         read_only=True)
     status = serializers.CharField(read_only=True)
-    
+    paid_at = serializers.DateTimeField(read_only=True)
+    expires_at = serializers.DateField(read_only=True)  
 class PaymentVerifySerializer(serializers.Serializer):
     reference = serializers.CharField(required=True)    
 class PaymentInitUpdateSerializer(serializers.ModelSerializer):
@@ -345,7 +350,10 @@ class PublicTenantBootstrapSerializer(serializers.Serializer):
 
         return public_tenant
 
-
+class BusinessCategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BusinessCategory
+        fields = ['id', 'name']
 class ProvisionTenantSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(read_only=True, required=False, allow_blank=True, help_text="The name of the tenant/company.")
@@ -358,6 +366,11 @@ class ProvisionTenantSerializer(serializers.Serializer):
     write_only=True,
     help_text="The name of the tenant/company."
           )
+    business_category = serializers.PrimaryKeyRelatedField(
+        queryset=BusinessCategory.objects.all(),
+        required=False,
+        allow_null=True
+    )
     paid_until = serializers.DateField(read_only=True, required=False)
     on_trial = serializers.BooleanField(default=True)
     owner = OwnerCreateSerializer()
@@ -381,9 +394,10 @@ class ProvisionTenantSerializer(serializers.Serializer):
             raise serializers.ValidationError({
                 'subdomain': 'A tenant with this subdomain/domain already exists.'
             })
-        # prvent duplicate owner email across tenants
+        # Do not accept an owner already attached to a tenant or a pending request.
         owner_email = data.get('owner', {}).get('email')
-        if Tenant.objects.filter(owner__email=owner_email).exists():
+        if (Tenant.objects.filter(owner__email=owner_email).exists()
+                or TenantRegistration.objects.filter(owner__email__iexact=owner_email).exists()):
             raise serializers.ValidationError({
                 'owner': 'A tenant with this owner email already exists.'
             })
@@ -391,110 +405,175 @@ class ProvisionTenantSerializer(serializers.Serializer):
         return data
 
     def create(self, validated_data):
-        name = validated_data.get('campany_name')
-        subdomain = validated_data.get('campany_name')
-        schema_name = validated_data.get('campany_name')
-        # paid_until = validated_data.get('paid_until')
-        on_trial = validated_data.get('on_trial')
-        owner_data = validated_data.get('owner')
-
-        # Create tenant owner in public schema
+        owner_data = validated_data['owner']
         with schema_context(get_public_schema_name()):
-            tenant_owner = None
-            tenant_owner = UserAccount.objects.filter(email=owner_data.get('email')).first()
-            if not tenant_owner:
-                tenant_owner = UserAccount.objects.create_user(
-                    first_name=owner_data.get('first_name'),
-                    last_name=owner_data.get('last_name'),
-                    phone_number=owner_data.get('phone_number'),
-                    email=owner_data.get('email'),
-                    password=owner_data.get('password'),
-                )
-                tenant_owner.is_verified = True
-                tenant_owner.save()
+            owner = UserAccount.objects.create_user(
+                email=owner_data['email'], password=owner_data['password'],
+                first_name=owner_data.get('first_name'), last_name=owner_data.get('last_name'),
+                phone_number=owner_data.get('phone_number'),
+            )
+            # An unverified account cannot authenticate or own a tenant.
+            owner.is_active = False
+            owner.is_verified = False
+            owner.save(update_fields=['is_active', 'is_verified'])
+            return TenantRegistration.objects.create(
+                owner=owner,
+                company_name=validated_data['campany_name'],
+                schema_name=validated_data['campany_name'],
+                on_trial=validated_data.get('on_trial', True),
+                business_category=validated_data.get('business_category'),
+            )
 
-        #if on_trial is true: give 7 days trial period
-        #    paid_until = timezone.now().date() + timezone.timedelta(days=14)
-        #  else:
-        #   paid_until = None
-        if not on_trial:
-            on_trial = True
+# class ProvisionTenantSerializer(serializers.Serializer):
+#     id = serializers.IntegerField(read_only=True)
+#     name = serializers.CharField(read_only=True, required=False, allow_blank=True, help_text="The name of the tenant/company.")
+#     # subdomain = serializers.CharField(write_only=True)
+#     schema_name = serializers.CharField(read_only=True, required=False, allow_blank=True)
+#     # owner = OwnerCreateSerializer()
+#     # make campany_name lowercase to avoid confusion with name field 
+#     campany_name = serializers.CharField(
+#     required=True,
+#     write_only=True,
+#     help_text="The name of the tenant/company."
+#           )
+#     paid_until = serializers.DateField(read_only=True, required=False)
+#     on_trial = serializers.BooleanField(default=True)
+#     owner = OwnerCreateSerializer()
 
-        if on_trial:
-            paid_until = timezone.now().date() + timezone.timedelta(days=7)
-        elif not on_trial and not paid_until:
-            paid_until = None
+#     def validate_campany_name(self, value):
+#         return value.lower().replace(" ", "")
+    
 
-        # Provision tenant using tenant_users task helper
-        try:
-            with transaction.atomic():
-                tenant_obj, domain_obj = provision_tenant(
-                    tenant_name=name,
-                    tenant_extra_data={'paid_until': paid_until, 'on_trial': on_trial},                  
-                    tenant_slug=subdomain,
-                    schema_name=schema_name,
-                    owner=tenant_owner,
-                    is_superuser=True,
-                    is_staff=True,
-                )
-        except IntegrityError:
-            raise serializers.ValidationError({
-                'non_field_errors': 'Tenant provisioning failed due to integrity error (possible duplicate created concurrently).'
-            })
-        except Exception as exc:
-            raise serializers.ValidationError({
-                'non_field_errors': f'Tenant provisioning failed: {exc}'
-            })
+#     def validate(self, data):
+#         schema_name = data.get('campany_name')
+#         # Prevent duplicate schema_name
+#         if Tenant.objects.filter(schema_name=schema_name).exists():
+#             raise serializers.ValidationError({
+#                 'schema_name': 'A tenant with this schema_name already exists.'
+#             })
 
-        # Add tenant owner to the new tenant with requested roles and groups
-        try:
-            role_super = owner_data.get('is_superuser', True)
-            role_staff = owner_data.get('is_staff', True)
-            # add_user will switch into tenant schema internally; only call it if user not already
-            # attached to the tenant. If the user was already added by the provisioner, just update
-            # their tenant-permissions (roles) and groups.
-            already_member = False
-            with schema_context(get_public_schema_name()):
-                already_member = tenant_owner.tenants.filter(pk=tenant_obj.pk).exists()
+#         # Prevent duplicate domain for the chosen subdomain
+#         base = getattr(settings, 'BASE_DOMAIN', 'localhost')
+#         domain_name = f"{data.get('campany_name')}.{base}"
+#         if Domain.objects.filter(domain=domain_name).exists():
+#             raise serializers.ValidationError({
+#                 'subdomain': 'A tenant with this subdomain/domain already exists.'
+#             })
+#         # prvent duplicate owner email across tenants
+#         owner_email = data.get('owner', {}).get('email')
+#         if Tenant.objects.filter(owner__email=owner_email).exists():
+#             raise serializers.ValidationError({
+#                 'owner': 'A tenant with this owner email already exists.'
+#             })
 
-            if not already_member:
-                tenant_obj.add_user(tenant_owner, is_superuser=role_super, is_staff=role_staff)
-            else:
-                # ensure tenant-permission flags updated inside tenant schema
-                with schema_context(tenant_obj.schema_name):
-                    try:
-                        utp = tenant_owner.usertenantpermissions
-                        utp.is_superuser = role_super
-                        utp.is_staff = role_staff
-                        utp.save(update_fields=['is_superuser', 'is_staff'])
-                    except Exception:
-                        # if utp missing for some reason, try to (re)create via add_user
-                        tenant_obj.add_user(tenant_owner, is_superuser=role_super, is_staff=role_staff)
+#         return data
 
-            # add groups inside tenant schema
-            groups = owner_data.get('groups', []) or []
-            if groups:
-                with schema_context(tenant_obj.schema_name):
-                    utp = tenant_owner.usertenantpermissions
-                    for gname in groups:
-                        grp, _ = Group.objects.get_or_create(name=gname)
-                        utp.groups.add(grp)
-                    utp.save()
-        except Exception as exc:
-            # best-effort cleanup: try to remove tenant if critical failure
-            raise serializers.ValidationError({
-                'non_field_errors': f'Failed assigning roles/groups to tenant owner: {exc}'
-            })
+#     def create(self, validated_data):
+#         name = validated_data.get('campany_name')
+#         subdomain = validated_data.get('campany_name')
+#         schema_name = validated_data.get('campany_name')
+#         # paid_until = validated_data.get('paid_until')
+#         on_trial = validated_data.get('on_trial')
+#         owner_data = validated_data.get('owner')
 
-        # Optionally add the public root user to the new tenant if public tenant exists
-        try:
-            public_tenant = Tenant.objects.get(schema_name=getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public'))
-            root_user = public_tenant.owner
-            tenant_obj.add_user(root_user, is_superuser=True, is_staff=True)
-        except Exception:
-            pass
+#         # Create tenant owner in public schema
+#         with schema_context(get_public_schema_name()):
+#             tenant_owner = None
+#             tenant_owner = UserAccount.objects.filter(email=owner_data.get('email')).first()
+#             if not tenant_owner:
+#                 tenant_owner = UserAccount.objects.create_user(
+#                     first_name=owner_data.get('first_name'),
+#                     last_name=owner_data.get('last_name'),
+#                     phone_number=owner_data.get('phone_number'),
+#                     email=owner_data.get('email'),
+#                     password=owner_data.get('password'),
+#                 )
+#                 tenant_owner.is_verified = True
+#                 tenant_owner.save()
 
-        return tenant_obj
+#         #if on_trial is true: give 7 days trial period
+#         #    paid_until = timezone.now().date() + timezone.timedelta(days=14)
+#         #  else:
+#         #   paid_until = None
+#         if not on_trial:
+#             on_trial = True
+
+#         if on_trial:
+#             paid_until = timezone.now().date() + timezone.timedelta(days=7)
+#         elif not on_trial and not paid_until:
+#             paid_until = None
+
+#         # Provision tenant using tenant_users task helper
+#         try:
+#             with transaction.atomic():
+#                 tenant_obj, domain_obj = provision_tenant(
+#                     tenant_name=name,
+#                     tenant_extra_data={'paid_until': paid_until, 'on_trial': on_trial},                  
+#                     tenant_slug=subdomain,
+#                     schema_name=schema_name,
+#                     owner=tenant_owner,
+#                     is_superuser=True,
+#                     is_staff=True,
+#                 )
+#         except IntegrityError:
+#             raise serializers.ValidationError({
+#                 'non_field_errors': 'Tenant provisioning failed due to integrity error (possible duplicate created concurrently).'
+#             })
+#         except Exception as exc:
+#             raise serializers.ValidationError({
+#                 'non_field_errors': f'Tenant provisioning failed: {exc}'
+#             })
+
+#         # Add tenant owner to the new tenant with requested roles and groups
+#         try:
+#             role_super = owner_data.get('is_superuser', True)
+#             role_staff = owner_data.get('is_staff', True)
+#             # add_user will switch into tenant schema internally; only call it if user not already
+#             # attached to the tenant. If the user was already added by the provisioner, just update
+#             # their tenant-permissions (roles) and groups.
+#             already_member = False
+#             with schema_context(get_public_schema_name()):
+#                 already_member = tenant_owner.tenants.filter(pk=tenant_obj.pk).exists()
+
+#             if not already_member:
+#                 tenant_obj.add_user(tenant_owner, is_superuser=role_super, is_staff=role_staff)
+#             else:
+#                 # ensure tenant-permission flags updated inside tenant schema
+#                 with schema_context(tenant_obj.schema_name):
+#                     try:
+#                         utp = tenant_owner.usertenantpermissions
+#                         utp.is_superuser = role_super
+#                         utp.is_staff = role_staff
+#                         utp.save(update_fields=['is_superuser', 'is_staff'])
+#                     except Exception:
+#                         # if utp missing for some reason, try to (re)create via add_user
+#                         tenant_obj.add_user(tenant_owner, is_superuser=role_super, is_staff=role_staff)
+
+#             # add groups inside tenant schema
+#             groups = owner_data.get('groups', []) or []
+#             if groups:
+#                 with schema_context(tenant_obj.schema_name):
+#                     utp = tenant_owner.usertenantpermissions
+#                     for gname in groups:
+#                         grp, _ = Group.objects.get_or_create(name=gname)
+#                         utp.groups.add(grp)
+#                     utp.save()
+#         except Exception as exc:
+#             # best-effort cleanup: try to remove tenant if critical failure
+#             raise serializers.ValidationError({
+#                 'non_field_errors': f'Failed assigning roles/groups to tenant owner: {exc}'
+#             })
+
+#         # Optionally add the public root user to the new tenant if public tenant exists
+#         try:
+#             public_tenant = Tenant.objects.get(schema_name=getattr(settings, 'PUBLIC_SCHEMA_NAME', 'public'))
+#             root_user = public_tenant.owner
+#             tenant_obj.add_user(root_user, is_superuser=True, is_staff=True)
+#         except Exception:
+#             pass
+
+#         return tenant_obj
+
 
 
 class TenantUserCreateSerializer(serializers.Serializer):

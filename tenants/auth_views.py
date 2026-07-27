@@ -40,6 +40,8 @@ class TenantTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         if not user:
             raise AuthenticationFailed('Invalid credentials')
+        if not user.is_active or not getattr(user, 'is_verified', False):
+            raise AuthenticationFailed('Please verify your email before signing in')
 
         # Determine tenant context and enforce membership if logging in inside a specific tenant
         tenant = getattr(request, 'tenant', None)
@@ -106,7 +108,7 @@ class TenantTokenObtainPairSerializer(TokenObtainPairSerializer):
                 attach_tenant_permissions(memberships[0]['schema_name'])
         else:
             attach_tenant_permissions(tenant.schema_name)
-            data['tenant'] = {'id': tenant.id, 'schema_name': tenant.schema_name}
+            data['tenant'] = {'id': tenant.id, 'schema_name': tenant.schema_name, 'business_category': tenant.business_category.name if tenant.business_category else None}
 
         return data
 
