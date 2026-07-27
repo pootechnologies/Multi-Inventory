@@ -13,6 +13,14 @@ urlpatterns = [
     path('bootstrap-public/', views.PublicTenantBootstrapView.as_view(), name='bootstrap-public'),
     # provision a private tenant
     path('provision-tenant/', views.ProvisionTenantView.as_view(), name='provision-tenant'),
+    path('email/verify/', views.EmailVerificationView.as_view(), name='email-verify'),
+    path('email/resend/', views.EmailVerificationResendView.as_view(), name='email-verification-resend'),
+    path('password/reset/', views.PasswordResetRequestView.as_view(), name='password-reset-request'),
+    path('password/reset/confirm/', views.PasswordResetConfirmView.as_view(), name='password-reset-confirm'),
+    path('password/reset-password/', views.PasswordResetConfirmView.as_view(), name='password-reset-page'),
+    # business_categotry
+    path('business-categories/', views.BusinessCategoryListCreateView.as_view(), name='business-category-list'),
+    path('business-categories/<int:pk>/', views.BusinessCategoryDetailView.as_view(), name='business-category-detail'),
     # create tenant users (only tenant owner or tenant admin)
     # path('tenant-users/', views.TenantUserCreateView.as_view(), name='tenant-user-create'),
     # create tenant-scoped groups

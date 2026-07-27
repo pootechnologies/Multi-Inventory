@@ -40,6 +40,8 @@ class TenantTokenObtainPairSerializer(TokenObtainPairSerializer):
 
         if not user:
             raise AuthenticationFailed('Invalid credentials')
+        if not user.is_active or not getattr(user, 'is_verified', False):
+            raise AuthenticationFailed('Please verify your email before signing in')
 
         # Determine tenant context and enforce membership if logging in inside a specific tenant
         tenant = getattr(request, 'tenant', None)

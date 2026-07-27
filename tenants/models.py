@@ -17,12 +17,36 @@ class UserAccount(UserProfile):
             return f"{self.first_name or ''} {self.last_name or ''}".strip()
         return super().get_full_name()
 
-    
+class BusinessCategory(models.Model):
+    name = models.CharField(max_length=100)
+
+    def __str__(self):
+        return self.name
+
+class TenantRegistration(models.Model):
+    """A tenant request that has not yet been allowed to create a schema."""
+    owner = models.OneToOneField(
+        UserAccount, on_delete=models.CASCADE, related_name="tenant_registration"
+    )
+    business_category = models.ForeignKey(
+        BusinessCategory, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    company_name = models.CharField(max_length=100)
+    schema_name = models.CharField(max_length=63, unique=True)
+    on_trial = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    verified_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Pending registration for {self.schema_name}"
+
 class Tenant(TenantBase):
     name = models.CharField(max_length=100)
     paid_until = models.DateField(null=True)
     on_trial = models.BooleanField(default=True)
     grace_until = models.DateField(null=True, blank=True)
+    business_category = models.ForeignKey(
+        BusinessCategory, on_delete=models.SET_NULL, null=True, blank=True)
 
 
 class Domain(DomainMixin):

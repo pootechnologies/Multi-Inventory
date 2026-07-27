@@ -230,24 +230,26 @@ USE_TZ = True
 
 # Email backend
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "pootechnologies1@gmail.com"
+EMAIL_HOST_PASSWORD = "tpsf pwst jsjp pggf"
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
-DEFAULT_FROM_EMAIL = 'poo@localhost'
-# EMAIL_HOST = 'smtp.gmail.com'
-# EMAIL_PORT = 465
-# EMAIL_USE_SSL = True
-# EMAIL_USE_TLS = False
-
-# EMAIL_HOST_USER = 'firewayele37@gmail.com'
-# EMAIL_HOST_PASSWORD = 'jetvug-byqdeT-8fuvhe'
-
-# DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+# DEFAULT_FROM_EMAIL = 'firewayele89@gmail.com'
+# Direct Django verification link. Change this to your public HTTPS API URL in production.
+EMAIL_VERIFICATION_URL = 'https://inventory.pootechnologies.tech/tenants/email/verify/'
+# Direct Django reset page. Change this to a frontend page later if you build one.
+FRONTEND_PASSWORD_RESET_URL = 'https://inventory.pootechnologies.tech/tenants/password/reset-password/'
 
 # chapa settings for testing
 CHAPA_PUBLIC_KEY = "CHAPUBK-qWdTeATfP4dVt9CwHm51NQLFcx9VnmTi"
 CHAPA_SECRET_KEY ="CHASECK-pbGE1f1nq0Wwb6YeXBkiL62oQhCaWwhE"
 CHAPA_BASE_URL = "https://api.chapa.co/v1"
 CHAPA_VERIFY_URL = f"{CHAPA_BASE_URL}/transaction/verify/<tx_ref>"
-CHAPA_WEBHOOK_URL = "http://inventory.pootechnologies.tech/api/payments/chapa/webhook/"
+CHAPA_WEBHOOK_URL = "https://inventory.pootechnologies.tech/api/payments/chapa/webhook/"
 # FRONTEND_PAYMENT_REDIRECT = "" # FRONT is not ready yet
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
