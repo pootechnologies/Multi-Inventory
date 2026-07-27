@@ -1,4 +1,3 @@
-from flask import redirect
 import requests
 import json
 import hmac
@@ -17,6 +16,7 @@ import uuid
 from multi_inventory_check.settings import CHAPA_PUBLIC_KEY, CHAPA_BASE_URL, CHAPA_SECRET_KEY, CHAPA_VERIFY_URL
 from django.utils import timezone
 from datetime import timedelta
+from django.shortcuts import redirect
 from django.http import Http404, JsonResponse, HttpResponse
 from html import escape
 from django.core.exceptions import ValidationError as DjangoValidationError
