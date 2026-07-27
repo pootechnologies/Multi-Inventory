@@ -108,7 +108,7 @@ class TenantTokenObtainPairSerializer(TokenObtainPairSerializer):
                 attach_tenant_permissions(memberships[0]['schema_name'])
         else:
             attach_tenant_permissions(tenant.schema_name)
-            data['tenant'] = {'id': tenant.id, 'schema_name': tenant.schema_name}
+            data['tenant'] = {'id': tenant.id, 'schema_name': tenant.schema_name, 'business_category': tenant.business_category.name if tenant.business_category else None}
 
         return data
 
