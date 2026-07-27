@@ -243,6 +243,7 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 EMAIL_VERIFICATION_URL = 'https://inventory.pootechnologies.tech/tenants/email/verify/'
 # Direct Django reset page. Change this to a frontend page later if you build one.
 FRONTEND_PASSWORD_RESET_URL = 'https://inventory.pootechnologies.tech/tenants/password/reset-password/'
+FRONTEND_LOGIN_URL = 'https://inventory-front.pootechnologies.tech/login'
 
 # chapa settings for testing
 CHAPA_PUBLIC_KEY = "CHAPUBK-qWdTeATfP4dVt9CwHm51NQLFcx9VnmTi"

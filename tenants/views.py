@@ -1,3 +1,4 @@
+from flask import redirect
 import requests
 import json
 import hmac
@@ -120,12 +121,14 @@ class EmailVerificationView(APIView):
 
     def get(self, request):
         """Allow a user to verify directly by clicking the email link."""
-        return self._verify(request.query_params.get("uid"), request.query_params.get("token"))
+        return self._verify(
+            request.query_params.get("uid"), request.query_params.get("token"), redirect_to_login=True
+        )
 
     def post(self, request):
         return self._verify(request.data.get("uid"), request.data.get("token"))
 
-    def _verify(self, uid, token):
+    def _verify(self, uid, token, redirect_to_login=False):
         user = _public_user_from_uid(uid)
         if not user or not token or not email_verification_token.check_token(user, token):
             return Response({"detail": "The verification link is invalid or has expired."}, status=status.HTTP_400_BAD_REQUEST)
@@ -170,6 +173,8 @@ class EmailVerificationView(APIView):
                     detail = f"Provisioning failed: {exc}"
                 return Response({"detail": detail}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+        if redirect_to_login:
+            return redirect(settings.FRONTEND_LOGIN_URL)
         return Response({"message": "Email verified and tenant provisioned.", "tenant": {"id": tenant.id, "schema_name": tenant.schema_name}})
 
 
