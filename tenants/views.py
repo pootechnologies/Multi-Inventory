@@ -747,7 +747,7 @@ class ProvisionTenantView(generics.ListCreateAPIView):
         for attempt in range(attempts):
             try:
                 with transaction.atomic():
-                    tenant = serializer.save()
+                    registration = serializer.save()
                 break
             except IntegrityError:
                 if attempt < attempts - 1:
@@ -762,11 +762,20 @@ class ProvisionTenantView(generics.ListCreateAPIView):
                 if Tenant.objects.filter(schema_name=serializer.validated_data['schema_name']).exists(): 
                     return Response({ "detail": "A tenant with this schema name already exists."}, status=status.HTTP_400_BAD_REQUEST) 
 
+        try:
+            _send_verification_email(request, registration.owner)
+        except Exception as exc:
+            # The registration remains pending and can be retried through email/resend/.
+            logging.exception("Could not send tenant verification email")
+            detail = "Registration saved, but the verification email could not be sent. Use the resend endpoint."
+            if settings.DEBUG:
+                detail = f"{detail} Mail error: {exc}"
+            return Response({"detail": detail}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
         return Response({
-            "message": "Tenant provisioned created successfully",
-            # "tenant": TenantSerializer(tenant).data,
-             "tenant": ProvisionTenantSerializer(tenant).data,
-        }, status=status.HTTP_201_CREATED)
+            "message": "Check your email to verify your address. Your tenant will be provisioned after verification.",
+            "registration": {"id": registration.id, "schema_name": registration.schema_name},
+        }, status=status.HTTP_202_ACCEPTED)
 
 # class userListCreateView(generics.ListCreateAPIView):
 #     queryset = UserAccount.objects.order_by('id')
