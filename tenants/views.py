@@ -143,12 +143,18 @@ class EmailVerificationView(APIView):
                     user.is_active = True
                     user.save(update_fields=["is_verified", "is_active"])
                     paid_until = timezone.now().date() + timedelta(days=7) if registration.on_trial else None
+                    tenant_extra_data = {
+                        "paid_until": paid_until,
+                        "on_trial": registration.on_trial,
+                    }
+                    if registration.business_category_id:
+                        tenant_extra_data["business_category"] = registration.business_category
+
                     tenant, _domain = provision_tenant(
                         tenant_name=registration.company_name,
-                        tenant_extra_data={"paid_until": paid_until, "on_trial": registration.on_trial},
+                        tenant_extra_data=tenant_extra_data,
                         tenant_slug=registration.schema_name,
                         schema_name=registration.schema_name,
-                        business_category=registration.business_category,
                         owner=user,
                         is_superuser=True,
                         is_staff=True,
