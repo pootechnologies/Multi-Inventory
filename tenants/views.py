@@ -209,8 +209,18 @@ class PasswordResetRequestView(APIView):
             if user:
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
                 token = PasswordResetTokenGenerator().make_token(user)
-                frontend_url = getattr(settings, "https://inventory-front.pootechnologies.tech/password/reset", "https://inventory.pootechnologies.tech/tenants/password/reset-password")
-                send_mail("Reset your password", f"Reset your password: {frontend_url}?uid={uid}&token={token}", settings.DEFAULT_FROM_EMAIL, [user.email])
+                # Use a proper settings attribute name for frontend reset URL
+                frontend_url = getattr(settings, "FRONTEND_PASSWORD_RESET_URL", "https://inventory-front.pootechnologies.tech/password/reset")
+                send_mail(
+                    "Reset your password",
+                    f"Reset your password: {frontend_url}?uid={uid}&token={token}",
+                    settings.DEFAULT_FROM_EMAIL,
+                    [user.email],
+                )
+                # uid = urlsafe_base64_encode(force_bytes(user.pk))
+                # token = PasswordResetTokenGenerator().make_token(user)
+                # frontend_url = getattr(settings, "https://inventory-front.pootechnologies.tech/password/reset", "https://inventory.pootechnologies.tech/tenants/password/reset-password")
+                # send_mail("Reset your password", f"Reset your password: {frontend_url}?uid={uid}&token={token}", settings.DEFAULT_FROM_EMAIL, [user.email])
         # Always identical to avoid revealing whether the email has an account.
         return Response({"message": "If that email exists, a password-reset link has been sent."})
 
@@ -218,21 +228,22 @@ class PasswordResetRequestView(APIView):
 class PasswordResetConfirmView(APIView):
     permission_classes = [permissions.AllowAny]
 
-    # def get(self, request):
-    #     """A minimal reset page for deployments without a separate frontend."""
-    #     uid = escape(request.query_params.get("uid", ""))
-    #     token = escape(request.query_params.get("token", ""))
-    #     return HttpResponse(
-    #         f'''<!doctype html><html><body>
-    #                <h1>Reset password</h1>
-    #                  <form method="post">
-    #                  <input type="hidden" name="uid" value="{uid}">
-    #                  <input type="hidden" name="token" value="{token}">
-    #                  <label>New password <input type="password" name="password" required></label>
-    #                  <button type="submit">Reset password</button>
-    #                  </form></body></html>''',
-    #         content_type="text/html",
-    #     )
+    def get(self, request):
+        """A minimal reset page for deployments without a separate frontend."""
+        uid = escape(request.query_params.get("uid", ""))
+        token = escape(request.query_params.get("token", ""))
+        # return HttpResponse(
+        #     f'''<!doctype html><html><body>
+        #            <h1>Reset password</h1>
+        #              <form method="post">
+        #              <input type="hidden" name="uid" value="{uid}">
+        #              <input type="hidden" name="token" value="{token}">
+        #              <label>New password <input type="password" name="password" required></label>
+        #              <button type="submit">Reset password</button>
+        #              </form></body></html>''',
+        #     content_type="text/html",
+        # )
+        
 
     def post(self, request):
         payload = request.data if request.content_type == "application/json" else request.POST
