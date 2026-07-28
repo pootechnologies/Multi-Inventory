@@ -209,7 +209,7 @@ class PasswordResetRequestView(APIView):
             if user:
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
                 token = PasswordResetTokenGenerator().make_token(user)
-                frontend_url = getattr(settings, "FRONTEND_PASSWORD_RESET_URL", "https://inventory.pootechnologies.tech/tenants/password/reset-password")
+                frontend_url = getattr(settings, "https://inventory-front.pootechnologies.tech/password/reset", "https://inventory.pootechnologies.tech/tenants/password/reset-password")
                 send_mail("Reset your password", f"Reset your password: {frontend_url}?uid={uid}&token={token}", settings.DEFAULT_FROM_EMAIL, [user.email])
         # Always identical to avoid revealing whether the email has an account.
         return Response({"message": "If that email exists, a password-reset link has been sent."})
