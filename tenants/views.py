@@ -218,21 +218,21 @@ class PasswordResetRequestView(APIView):
 class PasswordResetConfirmView(APIView):
     permission_classes = [permissions.AllowAny]
 
-    def get(self, request):
-        """A minimal reset page for deployments without a separate frontend."""
-        uid = escape(request.query_params.get("uid", ""))
-        token = escape(request.query_params.get("token", ""))
-        return HttpResponse(
-            f'''<!doctype html><html><body>
-                   <h1>Reset password</h1>
-                     <form method="post">
-                     <input type="hidden" name="uid" value="{uid}">
-                     <input type="hidden" name="token" value="{token}">
-                     <label>New password <input type="password" name="password" required></label>
-                     <button type="submit">Reset password</button>
-                     </form></body></html>''',
-            content_type="text/html",
-        )
+    # def get(self, request):
+    #     """A minimal reset page for deployments without a separate frontend."""
+    #     uid = escape(request.query_params.get("uid", ""))
+    #     token = escape(request.query_params.get("token", ""))
+    #     return HttpResponse(
+    #         f'''<!doctype html><html><body>
+    #                <h1>Reset password</h1>
+    #                  <form method="post">
+    #                  <input type="hidden" name="uid" value="{uid}">
+    #                  <input type="hidden" name="token" value="{token}">
+    #                  <label>New password <input type="password" name="password" required></label>
+    #                  <button type="submit">Reset password</button>
+    #                  </form></body></html>''',
+    #         content_type="text/html",
+    #     )
 
     def post(self, request):
         payload = request.data if request.content_type == "application/json" else request.POST
