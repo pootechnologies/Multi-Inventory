@@ -179,7 +179,7 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         # fields = ['id', 'name', 'category', 'category_name', 'specification', 'description', 'package', 'piece', 'unit', 'buying_price', 'selling_price', 'receipt_no', 'specification', 'stock', 'supplier_name', 'image', 'is_bundle', 'bundle_components', 'user']
-        fields = ['id', 'name', 'category', 'category_name', 'specification', 'description', 'package', 'piece', 'unit', 'buying_price', 'selling_price', 'receipt_no', 'specification', 'stock', 'supplier','supplier_name', 'image', 'user']
+        fields = ['id', 'name', 'category', 'category_name', 'specification', 'description', 'package', 'piece', 'unit', 'buying_price', 'selling_price', 'receipt_no', 'specification', 'stock', 'supplier','supplier_name', 'image', 'is_bundle', 'user']
         constraints = [
             UniqueConstraint(fields=['name', 'category_name', 'specification'], name='unique_product_category_specification')
         ]
