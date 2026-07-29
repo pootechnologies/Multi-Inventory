@@ -176,7 +176,7 @@ class EmailVerificationView(APIView):
 
         if redirect_to_login:
             return redirect(settings.FRONTEND_LOGIN_URL)
-        return Response({"message": "Email verified and tenant provisioned.", "tenant": {"id": tenant.id, "schema_name": tenant.schema_name}})
+        return Response({"message": f"Email verified and {tenant.business_category.name if tenant.business_category else 'a'} tenant provisioned.", "tenant": {"id": tenant.id, "schema_name": tenant.schema_name}})
 
 
 class EmailVerificationResendView(APIView):
