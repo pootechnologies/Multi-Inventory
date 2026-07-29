@@ -241,8 +241,8 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 # DEFAULT_FROM_EMAIL = 'firewayele89@gmail.com'
 # Direct Django verification link. Change this to your public HTTPS API URL in production.
 EMAIL_VERIFICATION_URL = 'https://inventory.pootechnologies.tech/tenants/email/verify/'
-# Direct Django reset page. Change this to a frontend page later if you build one.
-FRONTEND_PASSWORD_RESET_URL = 'https://inventory.pootechnologies.tech/tenants/password/reset-password/'
+# Frontend password reset page
+FRONTEND_PASSWORD_RESET_URL = 'https://inventory-front.pootechnologies.tech/password/reset'
 FRONTEND_LOGIN_URL = 'https://inventory-front.pootechnologies.tech/login'
 
 # chapa settings for testing
