@@ -171,8 +171,8 @@ class ProductGetSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     # category write_only field to accept category id during creation/updation
-    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), write_only=True)
-    supplier = serializers.PrimaryKeyRelatedField(queryset=Supplier.objects.all(), write_only=True)
+    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), write_only=True, required=False)
+    supplier = serializers.PrimaryKeyRelatedField(queryset=Supplier.objects.all(), write_only=True, required=False)
     supplier_name = serializers.CharField(source='supplier.name', read_only=True)
     # bundle_components = BundleSerializer(many=True, read_only=True)
 
