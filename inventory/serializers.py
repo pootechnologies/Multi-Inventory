@@ -171,15 +171,15 @@ class ProductGetSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     # category write_only field to accept category id during creation/updation
-    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), write_only=True)
-    supplier = serializers.PrimaryKeyRelatedField(queryset=Supplier.objects.all(), write_only=True)
+    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), write_only=True, required=False)
+    supplier = serializers.PrimaryKeyRelatedField(queryset=Supplier.objects.all(), write_only=True, required=False)
     supplier_name = serializers.CharField(source='supplier.name', read_only=True)
     # bundle_components = BundleSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
         # fields = ['id', 'name', 'category', 'category_name', 'specification', 'description', 'package', 'piece', 'unit', 'buying_price', 'selling_price', 'receipt_no', 'specification', 'stock', 'supplier_name', 'image', 'is_bundle', 'bundle_components', 'user']
-        fields = ['id', 'name', 'category', 'category_name', 'specification', 'description', 'package', 'piece', 'unit', 'buying_price', 'selling_price', 'receipt_no', 'specification', 'stock', 'supplier','supplier_name', 'image', 'user']
+        fields = ['id', 'name', 'category', 'category_name', 'specification', 'description', 'package', 'piece', 'unit', 'buying_price', 'selling_price', 'receipt_no', 'specification', 'stock', 'supplier','supplier_name', 'image', 'is_bundle', 'user']
         constraints = [
             UniqueConstraint(fields=['name', 'category_name', 'specification'], name='unique_product_category_specification')
         ]
@@ -1605,12 +1605,12 @@ class OtherExpensesSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 class OtherExpensesGetSerializer(serializers.ModelSerializer):
-    expense_type = serializers.CharField(source='expense_type.name', read_only=True)
+    expense = serializers.CharField(source='expense_type.name', read_only=True)
 
     class Meta:
         model = OtherExpenses
         # fields = '__all__'
-        fields = ['id', 'expense_type', 'cost', 'created_at', 'user']
+        fields = ['id', 'expense_type', 'expense', 'cost', 'created_at', 'user']
 
     def create(self, validated_data):
         request = self.context.get('request')

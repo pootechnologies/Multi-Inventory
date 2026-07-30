@@ -26,6 +26,10 @@ class ChapaInitSerializer(serializers.Serializer):
     subscriptionPlan = SubscriptionPlanSerializer(source='plan', read_only=True)
     provider = serializers.CharField(
         read_only=True)
+    reference = serializers.CharField(read_only=True)
+    status = serializers.CharField(read_only=True)
+    paid_at = serializers.DateTimeField(read_only=True)
+    expires_at = serializers.DateField(read_only=True)
 
 class ChapaVerifySerializer(serializers.Serializer):
     # reference = serializers.CharField(required=True)
