@@ -1605,12 +1605,12 @@ class OtherExpensesSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 class OtherExpensesGetSerializer(serializers.ModelSerializer):
-    expense_type = serializers.CharField(source='expense_type.name', read_only=True)
+    expense = serializers.CharField(source='expense_type.name', read_only=True)
 
     class Meta:
         model = OtherExpenses
         # fields = '__all__'
-        fields = ['id', 'expense_type', 'cost', 'created_at', 'user']
+        fields = ['id', 'expense_type', 'expense', 'cost', 'created_at', 'user']
 
     def create(self, validated_data):
         request = self.context.get('request')
