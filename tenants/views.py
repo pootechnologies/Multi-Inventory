@@ -284,6 +284,13 @@ class PasswordResetConfirmView(APIView):
 class ChapaPaymentInitView(generics.GenericAPIView):
     serializer_class = ChapaInitSerializer
 
+    def get(self, request, *args, **kwargs):
+        #return a list of all payments for the current tenant
+
+        tenant = request.tenant
+        payment = TenantPayment.objects.filter(tenant=tenant).order_by('-created_at')
+        return Response({"payments": ChapaInitSerializer(payment, many=True).data}, status=status.HTTP_200_OK)
+
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
