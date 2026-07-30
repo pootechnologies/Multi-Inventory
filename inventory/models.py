@@ -151,7 +151,7 @@ class CompanyInfo(models.Model):
         return self.en_name
 
     def save(self, *args, **kwargs):
-        if self.image:
+        if self.logo:
             img = Image.open(self.logo)
             
             # --- THIS IS THE MISSING PIECE ---
