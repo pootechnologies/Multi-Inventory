@@ -251,7 +251,7 @@ CHAPA_SECRET_KEY ="CHASECK-pbGE1f1nq0Wwb6YeXBkiL62oQhCaWwhE"
 CHAPA_BASE_URL = "https://api.chapa.co/v1"
 CHAPA_VERIFY_URL = f"{CHAPA_BASE_URL}/transaction/verify/<tx_ref>"
 CHAPA_WEBHOOK_URL = "https://inventory-api.pootechnologies.tech/api/payments/chapa/webhook/"
-# FRONTEND_PAYMENT_REDIRECT = "" # FRONT is not ready yet
+FRONTEND_PAYMENT_REDIRECT = "https://inventory.pootechnologies.tech/subscription" # FRONT is not ready yet
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
