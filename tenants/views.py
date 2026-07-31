@@ -240,7 +240,7 @@ class PasswordResetConfirmView(APIView):
         frontend_url = getattr(
             settings,
             "FRONTEND_PASSWORD_RESET_URL",
-            "https://inventory-front.pootechnologies.tech/password/reset",
+            "https://inventory.pootechnologies.tech/password/reset",
         )
 
         query_string = urlencode({"uid": uid, "token": token})
