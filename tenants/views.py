@@ -105,7 +105,7 @@ def _send_verification_email(request, user):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = email_verification_token.make_token(user)
     verification_url = getattr(
-        settings, "EMAIL_VERIFICATION_URL", "https://inventory-api.pootechnologies.tech/tenants/email/verify/"
+        settings, "EMAIL_VERIFICATION_URL", "https://inventory.pootechnologies.tech/tenants/email/verify/"
     )
     verification_url = f"{verification_url}?uid={uid}&token={token}"
     send_mail(
@@ -217,7 +217,7 @@ class PasswordResetRequestView(APIView):
                 frontend_url = getattr(
                     settings,
                     "FRONTEND_PASSWORD_RESET_URL",
-                    "https://inventory-front.pootechnologies.tech/password/reset",
+                    "https://inventory.pootechnologies.tech/password/reset",
                 )
                 send_mail(
                     "Reset your password",
