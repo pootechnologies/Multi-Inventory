@@ -329,8 +329,8 @@ class ChapaPaymentInitView(generics.GenericAPIView):
         customization_title = (plan.name or "Subscription")[:16]       
 
         reference = str(uuid.uuid4())
-        callback_url = f"https://{tenant if tenant else 'default'}.inventory.pootechnologies.tech/api/chapa-verify/{reference}/"  # Adjust as needed for your domain and route
-        return_url = f"https://{tenant if tenant else 'default'}.inventory.pootechnologies.tech/api/chapa-verify/{reference}/"  # Adjust as needed for your domain and route
+        callback_url = f"https://{tenant if tenant else 'default'}.inventory-api.pootechnologies.tech/api/chapa-verify/{reference}/"  # Adjust as needed for your domain and route
+        return_url = f"https://{tenant if tenant else 'default'}.inventory-api.pootechnologies.tech/api/chapa-verify/{reference}/"  # Adjust as needed for your domain and route
         chapa_data = {
             "amount": str(plan.price),
             "currency": "ETB",
