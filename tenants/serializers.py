@@ -28,6 +28,7 @@ class ChapaInitSerializer(serializers.Serializer):
         read_only=True)
     reference = serializers.CharField(read_only=True)
     status = serializers.CharField(read_only=True)
+    payment_url = serializers.URLField(read_only=True, help_text="URL to redirect the user for payment if applicable")
     paid_at = serializers.DateTimeField(read_only=True)
     expires_at = serializers.DateField(read_only=True)
 
