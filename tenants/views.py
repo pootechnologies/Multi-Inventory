@@ -205,7 +205,7 @@ class PasswordResetRequestView(APIView):
         except DjangoValidationError:
             return Response({"email": ["Enter a valid email address."]}, status=status.HTTP_400_BAD_REQUEST)
         # email if not exist in UserAccount and TenantRegistration, return error message
-        # but do not reveal whether the email exists or not
+        # but do not reveal whether the email exists or not, to avoid user enumeration
         if not UserAccount.objects.filter(email__iexact=email).exists() or not TenantRegistration.objects.filter(owner__email__iexact=email).exists():
             return Response({"message": "your email is not registered. If that email exists, a password-reset link has been sent."})
 
