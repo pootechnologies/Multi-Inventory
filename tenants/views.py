@@ -339,8 +339,8 @@ class ChapaPaymentInitView(generics.GenericAPIView):
             "tx_ref": reference,
             # callback_url should point to your webhook that accepts Chapa POSTs
             "callback_url": callback_url,
-            "return_url": return_url,
-            # "return_url": settings.FRONTEND_PAYMENT_REDIRECT,
+            # "return_url": return_url,
+            "return_url": settings.FRONTEND_PAYMENT_REDIRECT,
             "customization": {
                 "title": customization_title,
                 "description": plan.name
