@@ -31,7 +31,7 @@ SECRET_KEY = 'django-insecure-5@y00p!po-yq!0h$#k%37k=7do@%qj(eedyw0#ctt8dkn55d7k
 DEBUG = False
 
 # ALLOWED_HOSTS = []
-ALLOWED_HOSTS = ["*.inventory.pootechnologies.tech", ".inventory.pootechnologies.tech", "inventory.pootechnologies.tech", "*.dev-inventory.pootechnologies.tech", ".dev-inventory.pootechnologies.tech", "dev-inventory.pootechnologies.tech", "45.93.136.48"]
+ALLOWED_HOSTS = ["*.inventory-api.pootechnologies.tech", ".inventory-api.pootechnologies.tech", "inventory-api.pootechnologies.tech", "45.93.136.48"]
 
 
 # Application definition
@@ -142,7 +142,7 @@ DATABASE_ROUTERS = [
     "django_tenants.routers.TenantSyncRouter",
 ]
 
-BASE_DOMAIN = "inventory.pootechnologies.tech"
+BASE_DOMAIN = "inventory-api.pootechnologies.tech"
 PUBLIC_SCHEMA_NAME = "public"
 
 # TENANT_USERS_DOMAIN defines from which domain the users should be provisioned. This should match the domain of the public tenant.
@@ -240,17 +240,17 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 # DEFAULT_FROM_EMAIL = 'firewayele89@gmail.com'
 # Direct Django verification link. Change this to your public HTTPS API URL in production.
-EMAIL_VERIFICATION_URL = 'https://inventory.pootechnologies.tech/tenants/email/verify/'
+EMAIL_VERIFICATION_URL = 'https://inventory-api.pootechnologies.tech/tenants/email/verify/'
 # Frontend password reset page
-FRONTEND_PASSWORD_RESET_URL = 'https://inventory-front.pootechnologies.tech/password/reset'
-FRONTEND_LOGIN_URL = 'https://inventory-front.pootechnologies.tech/login'
+FRONTEND_PASSWORD_RESET_URL = 'https://inventory.pootechnologies.tech/password/reset'
+FRONTEND_LOGIN_URL = 'https://inventory.pootechnologies.tech/login'
 
 # chapa settings for testing
 CHAPA_PUBLIC_KEY = "CHAPUBK-qWdTeATfP4dVt9CwHm51NQLFcx9VnmTi"
 CHAPA_SECRET_KEY ="CHASECK-pbGE1f1nq0Wwb6YeXBkiL62oQhCaWwhE"
 CHAPA_BASE_URL = "https://api.chapa.co/v1"
 CHAPA_VERIFY_URL = f"{CHAPA_BASE_URL}/transaction/verify/<tx_ref>"
-CHAPA_WEBHOOK_URL = "https://inventory.pootechnologies.tech/api/payments/chapa/webhook/"
+CHAPA_WEBHOOK_URL = "https://inventory-api.pootechnologies.tech/api/payments/chapa/webhook/"
 # FRONTEND_PAYMENT_REDIRECT = "" # FRONT is not ready yet
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
