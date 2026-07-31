@@ -365,19 +365,20 @@ class ChapaPaymentInitView(generics.GenericAPIView):
         if chapa_response.get("status") != "success":
             return Response({"detail": "Chapa payment initiation failed", "chapa_response": chapa_response}, status=status.HTTP_400_BAD_REQUEST)
 
+        payment_url = chapa_response.get("data", {}).get("checkout_url")
         payment = TenantPayment.objects.create(
             tenant=tenant,
             amount=plan.price,
             plan=plan,
             status="pending",
             reference=reference,  # Unique reference 
-            provider="chapa"
+            provider="chapa",
+            payment_url=payment_url
         )
         tenant = payment.tenant
         tenant.paid_until = timezone.now().date() + timedelta(days=1)  # 1 day grace period
         tenant.save()
 
-        payment_url = chapa_response.get("data", {}).get("checkout_url")
 
         return Response({
             "reference": payment.reference,

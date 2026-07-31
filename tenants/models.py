@@ -77,6 +77,7 @@ class TenantPayment(models.Model):
         ],
         default="pending",
     )
+    payment_url = models.URLField(blank=True, null=True, help_text="URL to redirect the user for payment if applicable")
     paid_at = models.DateTimeField(null=True, blank=True)
     expires_at = models.DateField(null=True, blank=True)
 
