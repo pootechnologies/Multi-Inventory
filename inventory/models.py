@@ -152,21 +152,29 @@ class CompanyInfo(models.Model):
 
     def save(self, *args, **kwargs):
         if self.logo:
+            # 1. Open the uploaded image using Pillow
             img = Image.open(self.logo)
             
-            # --- THIS IS THE MISSING PIECE ---
-            # It downsizes the massive pixel grid to a web-friendly size
-            max_dimensions = (1200, 1200)
-            img.thumbnail(max_dimensions, Image.Resampling.LANCZOS)
-            # ----------------------------------
-
+            # 2. Convert RGBA (PNG with transparency) to RGB (JPEG format requires RGB)
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            
+            # 3. Create an in-memory buffer to temporarily hold the compressed image data
             output_io = BytesIO()
-            img.save(output_io, format='JPEG', quality=70) # Or 'JPEG'
+            
+            # 4. Save image to buffer with compression (quality=70 is generally the sweet spot)
+            img.save(output_io, format='JPEG', quality=70)
             output_io.seek(0)
             
-            base_name = self.logo.name.split('.')[0]
+            # 5. Re-assign the compressed image back to the ImageField
+            # We construct a new InMemoryUploadedFile so Django treats it properly
             self.logo = InMemoryUploadedFile(
-                output_io, 'ImageField', f"{base_name}.jpg", 'image/jpeg', sys.getsizeof(output_io), None
+                output_io, 
+                'ImageField', 
+                f"{self.logo.name.split('.')[0]}.jpg", 
+                'image/jpeg', 
+                sys.getsizeof(output_io), 
+                None
             )
             
         super().save(*args, **kwargs)
