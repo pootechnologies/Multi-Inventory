@@ -380,7 +380,7 @@ class ChapaPaymentInitView(generics.GenericAPIView):
             payment_url=payment_url
         )
         tenant = payment.tenant
-        tenant.paid_until = timezone.now().date() + timedelta(days=1)  # 1 day grace period
+        tenant.paid_until = timezone.now().date() + timedelta(days=3)  # 1 day grace period
         tenant.save()
 
 
