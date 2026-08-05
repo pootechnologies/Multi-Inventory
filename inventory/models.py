@@ -161,12 +161,12 @@ class CompanyInfo(models.Model):
             # ----------------------------------
 
             output_io = BytesIO()
-            img.save(output_io, format='WEBP', quality=70) # Or 'JPEG'
+            img.save(output_io, format='JPEG', quality=70) # Or 'JPEG'
             output_io.seek(0)
             
             base_name = self.logo.name.split('.')[0]
             self.logo = InMemoryUploadedFile(
-                output_io, 'ImageField', f"{base_name}.webp", 'image/webp', sys.getsizeof(output_io), None
+                output_io, 'ImageField', f"{base_name}.jpg", 'image/jpeg', sys.getsizeof(output_io), None
             )
             
         super().save(*args, **kwargs)
