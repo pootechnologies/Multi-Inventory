@@ -151,44 +151,44 @@ class CompanyInfo(models.Model):
         return self.en_name
 
     def save(self, *args, **kwargs):
-    if self.logo:
-        # 1. Open the uploaded image using Pillow
-        img = Image.open(self.logo)
-        
-        # 2. Convert to RGB (JPEG requires RGB; handles PNG/RGBA/P palettes)
-        if img.mode in ("RGBA", "P"):
-            img = img.convert("RGB")
-        
-        # 3. Resize pixel dimensions (Crucial for getting WebP-like small file sizes)
-        max_dimensions = (1200, 1200)
-        img.thumbnail(max_dimensions, Image.Resampling.LANCZOS)
-        
-        # 4. Create in-memory buffer
-        output_io = BytesIO()
-        
-        # 5. Save with advanced JPEG optimization settings
-        img.save(
-            output_io, 
-            format='JPEG', 
-            quality=70,          # Sweet spot for quality vs size
-            optimize=True,       # Extra pass to compress Huffman tables (saves 5-10% space)
-            progressive=True,    # Encodes progressively (smaller file + faster web rendering)
-            subsampling=2        # 4:2:0 chroma subsampling for lower file footprint
-        )
-        output_io.seek(0)
-        
-        # 6. Re-assign compressed JPEG back to ImageField
-        base_name = self.logo.name.rsplit('.', 1)[0]
-        self.logo = InMemoryUploadedFile(
-            output_io, 
-            'ImageField', 
-            f"{base_name}.jpg", 
-            'image/jpeg', 
-            sys.getsizeof(output_io), 
-            None
-        )
-        
-    super().save(*args, **kwargs)
+        if self.logo:
+            # 1. Open the uploaded image using Pillow
+            img = Image.open(self.logo)
+            
+            # 2. Convert to RGB (JPEG requires RGB; handles PNG/RGBA/P palettes)
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGB")
+            
+            # 3. Resize pixel dimensions (Crucial for getting WebP-like small file sizes)
+            max_dimensions = (1200, 1200)
+            img.thumbnail(max_dimensions, Image.Resampling.LANCZOS)
+            
+            # 4. Create in-memory buffer
+            output_io = BytesIO()
+            
+            # 5. Save with advanced JPEG optimization settings
+            img.save(
+                output_io, 
+                format='JPEG', 
+                quality=70,          # Sweet spot for quality vs size
+                optimize=True,       # Extra pass to compress Huffman tables (saves 5-10% space)
+                progressive=True,    # Encodes progressively (smaller file + faster web rendering)
+                subsampling=2        # 4:2:0 chroma subsampling for lower file footprint
+            )
+            output_io.seek(0)
+            
+            # 6. Re-assign compressed JPEG back to ImageField
+            base_name = self.logo.name.rsplit('.', 1)[0]
+            self.logo = InMemoryUploadedFile(
+                output_io, 
+                'ImageField', 
+                f"{base_name}.jpg", 
+                'image/jpeg', 
+                sys.getsizeof(output_io), 
+                None
+            )
+            
+        super().save(*args, **kwargs)
 
 
 class Order(models.Model):
