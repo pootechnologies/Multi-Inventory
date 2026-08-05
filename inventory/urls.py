@@ -117,7 +117,7 @@ urlpatterns = [
     path('company', CompanyListCreateAPIView.as_view(), name='company-list'),
     path('company/<pk>', CompanyRetrieveUpdateDeleteAPIView.as_view(), name='company-retrieve'),
 
-    path('category', CategoryListCreateView.as_view(), name='category-list'),
+    path('category/', CategoryListCreateView.as_view(), name='category-list'),
     path('category/<pk>', CategoryRetrieveUpdateDeleteAPIView.as_view(), name='category-retrieve'),
 
     path('revenue/', RetriveRevenueAPIView.as_view(), name='revenue-retrieve'),
