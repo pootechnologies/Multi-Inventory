@@ -146,7 +146,8 @@ class EmailVerificationView(APIView):
                     user.is_verified = True
                     user.is_active = True
                     user.save(update_fields=["is_verified", "is_active"])
-                    paid_until = timezone.now().date() + timedelta(days=7) if registration.on_trial else None
+                    # paid_until = timezone.now().date() + timedelta(days=7) if registration.on_trial else None
+                    paid_until = timezone.now().date() + timedelta(minutes=5) if registration.on_trial else None
                     tenant_extra_data = {
                         "paid_until": paid_until,
                         "on_trial": registration.on_trial,
