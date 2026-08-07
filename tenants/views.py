@@ -105,7 +105,7 @@ def _send_verification_email(request, user):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = email_verification_token.make_token(user)
     verification_url = getattr(
-        settings, "EMAIL_VERIFICATION_URL", "https://inventory-api.pootechnologies.tech/tenants/email/verify/"
+        settings, "EMAIL_VERIFICATION_URL", "https://dev-inventory-api.pootechnologies.tech/tenants/email/verify/"
     )
     verification_url = f"{verification_url}?uid={uid}&token={token}"
     send_mail(
@@ -240,7 +240,7 @@ class PasswordResetConfirmView(APIView):
         frontend_url = getattr(
             settings,
             "FRONTEND_PASSWORD_RESET_URL",
-            "https://inventory.pootechnologies.tech/password/reset",
+            "https://dev-inventory.pootechnologies.tech/password/reset",
         )
 
         query_string = urlencode({"uid": uid, "token": token})
@@ -329,8 +329,8 @@ class ChapaPaymentInitView(generics.GenericAPIView):
         customization_title = (plan.name or "Subscription")[:16]       
 
         reference = str(uuid.uuid4())
-        callback_url = f"https://{tenant if tenant else 'default'}.inventory-api.pootechnologies.tech/api/chapa-verify/{reference}/"  # Adjust as needed for your domain and route
-        return_url = f"https://{tenant if tenant else 'default'}.inventory-api.pootechnologies.tech/api/chapa-verify/{reference}/"  # Adjust as needed for your domain and route
+        callback_url = f"https://{tenant if tenant else 'default'}.dev-inventory-api.pootechnologies.tech/api/chapa-verify/{reference}/"  # Adjust as needed for your domain and route
+        return_url = f"https://{tenant if tenant else 'default'}.dev-inventory-api.pootechnologies.tech/api/chapa-verify/{reference}/"  # Adjust as needed for your domain and route
         chapa_data = {
             "amount": str(plan.price),
             "currency": "ETB",
