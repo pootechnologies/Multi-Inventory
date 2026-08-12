@@ -1444,11 +1444,11 @@ class ImportProductExcelAPIView(APIView):
                 category_value = str(raw_category).strip() if raw_category is not None else ""
 
                 # Reject row or assign a default if category is empty
-                if not category_value:
-                    return Response(
-                        {"error": f"Row {index} is missing a required 'category' value."},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
+                # if not category_value:
+                #     return Response(
+                #         {"error": f"Row {index} is missing a required 'category' value."},
+                #         status=status.HTTP_400_BAD_REQUEST
+                #     )
 
                 # Disables post_save/pre_save signals and custom save() methods
                 Product.objects.filter(id=data.get('id')).update(
