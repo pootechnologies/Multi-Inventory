@@ -1450,17 +1450,15 @@ class ImportProductExcelAPIView(APIView):
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
-                Product.objects.update_or_create(
-                    id=data.get('id'),
-                    defaults={
-                        'name': data.get('name'),
-                        'category': category_value,
-                        'buying_price': data.get('buying_price'),
-                        'selling_price': data.get('selling_price'),
-                        'unit': data.get('unit'),
-                        'stock': data.get('stock'),
-                        'supplier': data.get('supplier'),
-                    }
+                # Disables post_save/pre_save signals and custom save() methods
+                Product.objects.filter(id=data.get('id')).update(
+                    name=data.get('name'),
+                    category=category_value,
+                    buying_price=data.get('buying_price'),
+                    selling_price=data.get('selling_price'),
+                    unit=data.get('unit'),
+                    stock=data.get('stock'),
+                    supplier=data.get('supplier'),
                 )
             return Response({"message": "Products imported successfully."}, status=status.HTTP_201_CREATED)
         except Exception as e:
