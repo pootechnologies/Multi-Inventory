@@ -56,7 +56,7 @@ class Supplier(models.Model):
 
 class Product(models.Model):
     name = models.CharField(max_length=200, blank=False, null=False)
-    category = models.CharField(max_length=200, blank=False, null=False)
+    category = models.CharField(max_length=200, blank=True, null=True)
     specification = models.CharField(max_length=255, null=True, blank=True)
     description = models.TextField(null=True, blank=True)
     package = models.IntegerField(null=True, blank=True)
@@ -65,7 +65,7 @@ class Product(models.Model):
     unit = models.CharField(max_length=255, null=True, blank=True)
     selling_price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     stock = models.IntegerField(null=True, blank=True)
-    supplier = models.CharField(max_length=200, blank=False, null=False)
+    supplier = models.CharField(max_length=200, blank=True, null=True)
     receipt_no = models.IntegerField(null=True, blank=True)
     image = models.ImageField(upload_to='products/', null=True, blank=True)
     is_bundle = models.BooleanField(default=False)  # bundle flag
