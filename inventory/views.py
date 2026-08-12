@@ -1393,8 +1393,8 @@ class ExportProductExcelAPIView(APIView):
 
         # Fetch data
         products = Product.objects.all().values(
-            'id', 'name', 'description', 'package', 'piece', 'buying_price',
-            'selling_price', 'unit', 'stock', 'receipt_no', 'user'
+            'id', 'name', 'category', 'buying_price',
+            'selling_price', 'unit', 'stock', 'supplier'
         )
         if not products:
             return Response({"error": "No product data available"}, status=204)
@@ -1429,24 +1429,36 @@ class ImportProductExcelAPIView(APIView):
             wb = openpyxl.load_workbook(excel_file)
             ws = wb.active
             rows = list(ws.iter_rows(values_only=True))
-            headers = [str(cell).strip() for cell in rows[0]]
-            for row in rows[1:]:
+            
+            if not rows:
+                return Response({"error": "Excel file is empty."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Normalize all column headers to lowercase and trimmed strings
+            headers = [str(cell).strip().lower() for cell in rows[0] if cell is not None]
+
+            for index, row in enumerate(rows[1:], start=2):
                 data = dict(zip(headers, row))
-                # Adjust field names as needed for your Product model
-                Product.objects.update_or_create(
-                    id=data.get('id'),
-                    defaults={
-                        'name': data.get('name'),
-                        'description': data.get('description'),
-                        'package': data.get('package'),
-                        'piece': data.get('piece'),
-                        'buying_price': data.get('buying_price'),
-                        'selling_price': data.get('selling_price'),
-                        'unit': data.get('unit'),
-                        'stock': data.get('stock'),
-                        'receipt_no': data.get('receipt_no'),
-                        'user': data.get('user'),  # Use FK id or handle lookup
-                    }
+
+                # Extract category and clean whitespace
+                raw_category = data.get('category')
+                category_value = str(raw_category).strip() if raw_category is not None else ""
+
+                # Reject row or assign a default if category is empty
+                # if not category_value:
+                #     return Response(
+                #         {"error": f"Row {index} is missing a required 'category' value."},
+                #         status=status.HTTP_400_BAD_REQUEST
+                #     )
+
+                # Disables post_save/pre_save signals and custom save() methods
+                Product.objects.filter(id=data.get('id')).update(
+                    name=data.get('name'),
+                    category=category_value,
+                    buying_price=data.get('buying_price'),
+                    selling_price=data.get('selling_price'),
+                    unit=data.get('unit'),
+                    stock=data.get('stock'),
+                    supplier=data.get('supplier'),
                 )
             return Response({"message": "Products imported successfully."}, status=status.HTTP_201_CREATED)
         except Exception as e:
