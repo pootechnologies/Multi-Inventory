@@ -156,32 +156,32 @@ class BundleSerializer(serializers.ModelSerializer):
 
 
 class ProductGetSerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name', read_only=True)
-    supplier_name = serializers.CharField(source='supplier.name', read_only=True)
+    # category_name = serializers.CharField(source='category.name', read_only=True)
+    # supplier_name = serializers.CharField(source='supplier.name', read_only=True)
     bundle_components = BundleSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
-        fields = ['id', 'name', 'category', 'category_name', 'specification', 'description', 'package', 'piece', 'unit', 'buying_price', 'selling_price', 'receipt_no', 'specification', 'stock', 'supplier_name', 'image', 'is_bundle', 'bundle_components', 'user']
+        fields = ['id', 'name', 'category', 'specification', 'description', 'package', 'piece', 'unit', 'buying_price', 'selling_price', 'receipt_no', 'specification', 'stock', 'supplier', 'image', 'is_bundle', 'bundle_components', 'user']
         # constraints = [
         #     UniqueConstraint(fields=['name', 'category_name', 'specification'], name='unique_product_category_specification')
         # ]
 
 
 class ProductSerializer(serializers.ModelSerializer):
-    category_name = serializers.CharField(source='category.name', read_only=True)
+    category = serializers.CharField(source='category.name', read_only=True, required=False)
     # category write_only field to accept category id during creation/updation
-    category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), write_only=True, required=False)
-    supplier = serializers.PrimaryKeyRelatedField(queryset=Supplier.objects.all(), write_only=True, required=False)
-    supplier_name = serializers.CharField(source='supplier.name', read_only=True)
+    # category = serializers.PrimaryKeyRelatedField(queryset=Category.objects.all(), write_only=True, required=False)
+    # supplier = serializers.PrimaryKeyRelatedField(queryset=Supplier.objects.all(), write_only=True, required=False)
+    supplier = serializers.CharField(source='supplier.name', read_only=True, required=False)
     # bundle_components = BundleSerializer(many=True, read_only=True)
 
     class Meta:
         model = Product
         # fields = ['id', 'name', 'category', 'category_name', 'specification', 'description', 'package', 'piece', 'unit', 'buying_price', 'selling_price', 'receipt_no', 'specification', 'stock', 'supplier_name', 'image', 'is_bundle', 'bundle_components', 'user']
-        fields = ['id', 'name', 'category', 'category_name', 'specification', 'description', 'package', 'piece', 'unit', 'buying_price', 'selling_price', 'receipt_no', 'specification', 'stock', 'supplier','supplier_name', 'image', 'is_bundle', 'user']
+        fields = ['id', 'name', 'category', 'specification', 'description', 'package', 'piece', 'unit', 'buying_price', 'selling_price', 'receipt_no', 'specification', 'stock', 'supplier', 'image', 'is_bundle', 'user']
         constraints = [
-            UniqueConstraint(fields=['name', 'category_name', 'specification'], name='unique_product_category_specification')
+            UniqueConstraint(fields=['name', 'category', 'specification'], name='unique_product_category_specification')
         ]
 
     def validate(self, attrs):
@@ -219,6 +219,8 @@ class ProductSerializer(serializers.ModelSerializer):
         update_package = validated_data.pop('package', None) # Get the number of packages to add
         piece = validated_data.pop('piece', instance.piece) # Get the number of pieces to add
         update_stocks = validated_data.pop('stock', None)  # Get the
+        supplier = validated_data.pop('supplier', instance.supplier)  # Get the supplier
+        category = validated_data.pop('category', instance.category)  # Get the category
 
         # Stock and selling price update log
         old_selling_price = instance.selling_price

@@ -1393,8 +1393,8 @@ class ExportProductExcelAPIView(APIView):
 
         # Fetch data
         products = Product.objects.all().values(
-            'id', 'name', 'description', 'package', 'piece', 'buying_price',
-            'selling_price', 'unit', 'stock', 'receipt_no', 'user'
+            'id', 'name', 'category', 'buying_price',
+            'selling_price', 'unit', 'stock', 'supplier'
         )
         if not products:
             return Response({"error": "No product data available"}, status=204)
@@ -1437,15 +1437,12 @@ class ImportProductExcelAPIView(APIView):
                     id=data.get('id'),
                     defaults={
                         'name': data.get('name'),
-                        'description': data.get('description'),
-                        'package': data.get('package'),
-                        'piece': data.get('piece'),
+                        'category': data.get('category'),
                         'buying_price': data.get('buying_price'),
                         'selling_price': data.get('selling_price'),
                         'unit': data.get('unit'),
                         'stock': data.get('stock'),
-                        'receipt_no': data.get('receipt_no'),
-                        'user': data.get('user'),  # Use FK id or handle lookup
+                        'supplier': data.get('supplier'),
                     }
                 )
             return Response({"message": "Products imported successfully."}, status=status.HTTP_201_CREATED)
