@@ -1464,6 +1464,7 @@ class ImportProductExcelAPIView(APIView):
         except Exception as e:
             return Response({"error": f"Failed to import products: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
+
 class OrderLogListView(generics.ListAPIView):
     authentication_classes = [JWTAuthentication, SessionAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
