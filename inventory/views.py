@@ -1429,15 +1429,32 @@ class ImportProductExcelAPIView(APIView):
             wb = openpyxl.load_workbook(excel_file)
             ws = wb.active
             rows = list(ws.iter_rows(values_only=True))
-            headers = [str(cell).strip() for cell in rows[0]]
-            for row in rows[1:]:
+            
+            if not rows:
+                return Response({"error": "Excel file is empty."}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Normalize all column headers to lowercase and trimmed strings
+            headers = [str(cell).strip().lower() for cell in rows[0] if cell is not None]
+
+            for index, row in enumerate(rows[1:], start=2):
                 data = dict(zip(headers, row))
-                # Adjust field names as needed for your Product model
+
+                # Extract category and clean whitespace
+                raw_category = data.get('category')
+                category_value = str(raw_category).strip() if raw_category is not None else ""
+
+                # Reject row or assign a default if category is empty
+                if not category_value:
+                    return Response(
+                        {"error": f"Row {index} is missing a required 'category' value."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+
                 Product.objects.update_or_create(
                     id=data.get('id'),
                     defaults={
                         'name': data.get('name'),
-                        'category': data.get('category'),
+                        'category': category_value,
                         'buying_price': data.get('buying_price'),
                         'selling_price': data.get('selling_price'),
                         'unit': data.get('unit'),
@@ -1448,7 +1465,6 @@ class ImportProductExcelAPIView(APIView):
             return Response({"message": "Products imported successfully."}, status=status.HTTP_201_CREATED)
         except Exception as e:
             return Response({"error": f"Failed to import products: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
-
 
 class OrderLogListView(generics.ListAPIView):
     authentication_classes = [JWTAuthentication, SessionAuthentication]
