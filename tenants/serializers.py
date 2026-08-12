@@ -30,7 +30,7 @@ class ChapaInitSerializer(serializers.Serializer):
     status = serializers.CharField(read_only=True)
     payment_url = serializers.URLField(read_only=True, help_text="URL to redirect the user for payment if applicable")
     paid_at = serializers.DateTimeField(read_only=True)
-    expires_at = serializers.DateField(read_only=True)
+    expires_at = serializers.DateTimeField(read_only=True) 
 
 class ChapaVerifySerializer(serializers.Serializer):
     # reference = serializers.CharField(required=True)
@@ -53,7 +53,7 @@ class PaymentInitSerializer(serializers.Serializer):
         read_only=True)
     status = serializers.CharField(read_only=True)
     paid_at = serializers.DateTimeField(read_only=True)
-    expires_at = serializers.DateField(read_only=True)  
+    expires_at = serializers.DateTimeField(read_only=True)  
 class PaymentVerifySerializer(serializers.Serializer):
     reference = serializers.CharField(required=True)    
 class PaymentInitUpdateSerializer(serializers.ModelSerializer):
@@ -376,7 +376,7 @@ class ProvisionTenantSerializer(serializers.Serializer):
         required=False,
         allow_null=True
     )
-    paid_until = serializers.DateField(read_only=True, required=False)
+    paid_until = serializers.DateTimeField(read_only=True, required=False)
     on_trial = serializers.BooleanField(default=True)
     owner = OwnerCreateSerializer()
 
@@ -441,7 +441,7 @@ class ProvisionTenantSerializer(serializers.Serializer):
 #     write_only=True,
 #     help_text="The name of the tenant/company."
 #           )
-#     paid_until = serializers.DateField(read_only=True, required=False)
+#     paid_until = serializers.DateTimeField(read_only=True, required=False)
 #     on_trial = serializers.BooleanField(default=True)
 #     owner = OwnerCreateSerializer()
 

@@ -42,9 +42,9 @@ class TenantRegistration(models.Model):
 
 class Tenant(TenantBase):
     name = models.CharField(max_length=100)
-    paid_until = models.DateField(null=True)
+    paid_until = models.DateTimeField(null=True)
     on_trial = models.BooleanField(default=True)
-    grace_until = models.DateField(null=True, blank=True)
+    grace_until = models.DateTimeField(null=True, blank=True)
     business_category = models.ForeignKey(
         BusinessCategory, on_delete=models.SET_NULL, null=True, blank=True)
 
@@ -79,7 +79,7 @@ class TenantPayment(models.Model):
     )
     payment_url = models.URLField(blank=True, null=True, help_text="URL to redirect the user for payment if applicable")
     paid_at = models.DateTimeField(null=True, blank=True)
-    expires_at = models.DateField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -119,7 +119,7 @@ class Notification(models.Model):
 #         default="pending",
 #     )
 #     paid_at = models.DateTimeField(null=True, blank=True)
-#     expires_at = models.DateField(null=True, blank=True)
+#     expires_at = models.DateTimeField(null=True, blank=True)
 
 #     created_at = models.DateTimeField(auto_now_add=True)
     
