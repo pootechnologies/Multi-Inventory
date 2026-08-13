@@ -1433,37 +1433,47 @@ class ImportProductExcelAPIView(APIView):
             if not rows:
                 return Response({"error": "Excel file is empty."}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Normalize all column headers to lowercase and trimmed strings
             headers = [str(cell).strip().lower() for cell in rows[0] if cell is not None]
+
+            created_count = 0
+            updated_count = 0
 
             for index, row in enumerate(rows[1:], start=2):
                 data = dict(zip(headers, row))
 
-                # Extract category and clean whitespace
+                # Clean category value
                 raw_category = data.get('category')
-                category_value = str(raw_category).strip() if raw_category is not None else ""
+                category_value = str(raw_category).strip() if (raw_category is not None and str(raw_category).strip() != "") else None
 
-                # Reject row or assign a default if category is empty
-                # if not category_value:
-                #     return Response(
-                #         {"error": f"Row {index} is missing a required 'category' value."},
-                #         status=status.HTTP_400_BAD_REQUEST
-                #     )
+                product_id = data.get('id')
 
-                # Disables post_save/pre_save signals and custom save() methods
-                Product.objects.filter(id=data.get('id')).update(
-                    name=data.get('name'),
-                    category=category_value,
-                    buying_price=data.get('buying_price'),
-                    selling_price=data.get('selling_price'),
-                    unit=data.get('unit'),
-                    stock=data.get('stock'),
-                    supplier=data.get('supplier'),
-                )
-            return Response({"message": "Products imported successfully."}, status=status.HTTP_201_CREATED)
+                # Prepare common product fields
+                product_fields = {
+                    'name': data.get('name'),
+                    'category': category_value,
+                    'buying_price': data.get('buying_price'),
+                    'selling_price': data.get('selling_price'),
+                    'unit': data.get('unit'),
+                    'stock': data.get('stock'),
+                    'supplier': data.get('supplier'),
+                }
+
+                # Check if product exists in DB
+                if product_id and Product.objects.filter(id=product_id).exists():
+                    # UPDATE existing record (skips model save/signals)
+                    Product.objects.filter(id=product_id).update(**product_fields)
+                    updated_count += 1
+                else:
+                    # CREATE new record in database
+                    Product.objects.create(**product_fields)
+                    created_count += 1
+
+            return Response(
+                {"message": f"Import completed: {created_count} created, {updated_count} updated."},
+                status=status.HTTP_201_CREATED
+            )
         except Exception as e:
             return Response({"error": f"Failed to import products: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
-
 
 class OrderLogListView(generics.ListAPIView):
     authentication_classes = [JWTAuthentication, SessionAuthentication]
