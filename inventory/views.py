@@ -124,7 +124,7 @@ class ProductListCreateView(generics.ListCreateAPIView):
             if search_query:
                 products = products.filter(
                     Q(name__icontains=search_query) |
-                    Q(category__name__icontains=search_query) |
+                    Q(category__icontains=search_query) |
                     Q(specification__icontains=search_query)
                 )
 
