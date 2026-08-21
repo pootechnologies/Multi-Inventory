@@ -105,6 +105,21 @@ class BundleListCreateView(generics.ListCreateAPIView):
 class BundleDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = Bundle.objects.all()
     serializer_class = BundleSerializer
+    
+class ProductBulkDeleteView(generics.DestroyAPIView):
+    queryset = Product.objects.all()
+
+    def get_object(self):
+        # Override to return the full queryset instead of retrieving a single object by ID
+        return self.get_queryset()
+
+    def destroy(self, request, *args, **kwargs):
+        queryset = self.get_object()
+        deleted_count, _ = queryset.delete()
+        return Response(
+            {"detail": f"Successfully deleted {deleted_count} products."},
+            status=status.HTTP_200_OK
+        )
 
 class ProductListCreateView(generics.ListCreateAPIView):
     queryset = Product.objects.all()
