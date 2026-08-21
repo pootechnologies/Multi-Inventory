@@ -219,8 +219,8 @@ class ProductSerializer(serializers.ModelSerializer):
         update_package = validated_data.pop('package', None) # Get the number of packages to add
         piece = validated_data.pop('piece', instance.piece) # Get the number of pieces to add
         update_stocks = validated_data.pop('stock', None)  # Get the
-        supplier = validated_data.pop('supplier', instance.supplier)  # Get the supplier
-        category = validated_data.pop('category', instance.category)  # Get the category
+        # supplier = validated_data.pop('supplier', instance.supplier)  # Get the supplier
+        # category = validated_data.pop('category', instance.category)  # Get the category
 
         # Stock and selling price update log
         old_selling_price = instance.selling_price
