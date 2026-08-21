@@ -3,6 +3,7 @@ from .views import (
     ProductListCreateView, 
     ProductRetrieveUpdateDestroyView,
     ProductBulkDeleteView,
+    ProductCountView,
 
     BundleListCreateView,
     BundleDetailView,
@@ -98,6 +99,7 @@ urlpatterns = [
     path('products', ProductListCreateView.as_view(), name='products-list'),
     path('products/<pk>', ProductRetrieveUpdateDestroyView.as_view(), name='products-retrieve'),
     path('products/delete-all/', ProductBulkDeleteView.as_view(), name='product-delete-all'),
+    path('products/count/', ProductCountView.as_view(), name='product-count'),
 
     path('bundles/', BundleListCreateView.as_view(), name='bundle-list-create'),
     path('bundles/<int:pk>/', BundleDetailView.as_view(), name='bundle-detail'),
