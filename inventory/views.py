@@ -1438,9 +1438,66 @@ class ExportProductExcelAPIView(APIView):
         wb.save(response)
         return response
 
-class ImportProductExcelAPIView(APIView):
+# class ImportProductExcelAPIView(APIView):
     # authentication_classes = [JWTAuthentication, SessionAuthentication]
     # permission_classes = [permissions.IsAuthenticated, IsTenantUser, HasModelPermissionForTenant]
+    # parser_classes = [MultiPartParser]
+
+    # def post(self, request, *args, **kwargs):
+    #     excel_file = request.FILES.get('file')
+    #     if not excel_file:
+    #         return Response({"error": "No file uploaded."}, status=status.HTTP_400_BAD_REQUEST)
+
+    #     try:
+    #         wb = openpyxl.load_workbook(excel_file)
+    #         ws = wb.active
+    #         rows = list(ws.iter_rows(values_only=True))
+            
+    #         if not rows:
+    #             return Response({"error": "Excel file is empty."}, status=status.HTTP_400_BAD_REQUEST)
+
+    #         headers = [str(cell).strip().lower() for cell in rows[0] if cell is not None]
+
+    #         created_count = 0
+    #         updated_count = 0
+
+    #         for index, row in enumerate(rows[1:], start=2):
+    #             data = dict(zip(headers, row))
+
+    #             # Clean category value
+    #             raw_category = data.get('category')
+    #             category_value = str(raw_category).strip() if (raw_category is not None and str(raw_category).strip() != "") else None
+
+    #             product_id = data.get('id')
+
+    #             # Prepare common product fields
+    #             product_fields = {
+    #                 'name': data.get('name'),
+    #                 'category': category_value,
+    #                 'buying_price': data.get('buying_price'),
+    #                 'selling_price': data.get('selling_price'),
+    #                 'unit': data.get('unit'),
+    #                 'stock': data.get('stock'),
+    #                 'supplier': data.get('supplier'),
+    #             }
+
+    #             # Check if product exists in DB
+    #             if product_id and Product.objects.filter(id=product_id).exists():
+    #                 # UPDATE existing record (skips model save/signals)
+    #                 Product.objects.filter(id=product_id).update(**product_fields)
+    #                 updated_count += 1
+    #             else:
+    #                 # CREATE new record in database
+    #                 Product.objects.create(**product_fields)
+    #                 created_count += 1
+
+    #         return Response(
+    #             {"message": f"Import completed: {created_count} created, {updated_count} updated."},
+    #             status=status.HTTP_201_CREATED
+    #         )
+    #     except Exception as e:
+    #         return Response({"error": f"Failed to import products: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+class ImportProductExcelAPIView(APIView):
     parser_classes = [MultiPartParser]
 
     def post(self, request, *args, **kwargs):
@@ -1458,43 +1515,67 @@ class ImportProductExcelAPIView(APIView):
 
             headers = [str(cell).strip().lower() for cell in rows[0] if cell is not None]
 
-            created_count = 0
-            updated_count = 0
+            # Track combinations seen in this Excel file
+            seen_in_file = set()
 
-            for index, row in enumerate(rows[1:], start=2):
-                data = dict(zip(headers, row))
+            # Atomic transaction: rolls back all operations if any row fails
+            with transaction.atomic():
+                for index, row in enumerate(rows[1:], start=2):
+                    data = dict(zip(headers, row))
 
-                # Clean category value
-                raw_category = data.get('category')
-                category_value = str(raw_category).strip() if (raw_category is not None and str(raw_category).strip() != "") else None
+                    name = data.get('name')
+                    if not name:
+                        continue  # Skip rows without a name
 
-                product_id = data.get('id')
+                    raw_category = data.get('category')
+                    category_value = str(raw_category).strip() if (raw_category is not None and str(raw_category).strip() != "") else None
 
-                # Prepare common product fields
-                product_fields = {
-                    'name': data.get('name'),
-                    'category': category_value,
-                    'buying_price': data.get('buying_price'),
-                    'selling_price': data.get('selling_price'),
-                    'unit': data.get('unit'),
-                    'stock': data.get('stock'),
-                    'supplier': data.get('supplier'),
-                }
+                    # Unique composite key (case-insensitive for name)
+                    combo_key = (str(name).strip().lower(), category_value.lower() if category_value else None)
 
-                # Check if product exists in DB
-                if product_id and Product.objects.filter(id=product_id).exists():
-                    # UPDATE existing record (skips model save/signals)
-                    Product.objects.filter(id=product_id).update(**product_fields)
-                    updated_count += 1
-                else:
-                    # CREATE new record in database
-                    Product.objects.create(**product_fields)
-                    created_count += 1
+                    # 1. Check for duplicates WITHIN the uploaded file
+                    if combo_key in seen_in_file:
+                        return Response(
+                            {"error": f"Row {index}: Duplicate entry for '{name}' under category '{category_value}' found in the Excel file."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    seen_in_file.add(combo_key)
 
-            return Response(
-                {"message": f"Import completed: {created_count} created, {updated_count} updated."},
-                status=status.HTTP_201_CREATED
-            )
+                    product_id = data.get('id')
+
+                    # 2. Check for duplicates in the DATABASE
+                    existing_qs = Product.objects.filter(
+                        name__iexact=str(name).strip(),
+                        category=category_value
+                    )
+                    
+                    # If an existing product ID is provided, exclude it from the duplicate check (allows updating itself)
+                    if product_id:
+                        existing_qs = existing_qs.exclude(id=product_id)
+
+                    if existing_qs.exists():
+                        return Response(
+                            {"error": f"Row {index}: Product '{name}' in category '{category_value or 'None'}' already exists in the database."},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+
+                    product_fields = {
+                        'name': str(name).strip(),
+                        'category': category_value,
+                        'buying_price': data.get('buying_price'),
+                        'selling_price': data.get('selling_price'),
+                        'unit': data.get('unit'),
+                        'stock': data.get('stock'),
+                        'supplier': data.get('supplier'),
+                    }
+
+                    if product_id and Product.objects.filter(id=product_id).exists():
+                        Product.objects.filter(id=product_id).update(**product_fields)
+                    else:
+                        Product.objects.create(**product_fields)
+
+            return Response({"message": "Products imported successfully."}, status=status.HTTP_201_CREATED)
+
         except Exception as e:
             return Response({"error": f"Failed to import products: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
 
