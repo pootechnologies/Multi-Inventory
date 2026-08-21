@@ -71,6 +71,14 @@ class Product(models.Model):
     is_bundle = models.BooleanField(default=False)  # bundle flag
     user = models.CharField(max_length=255, default="User", null=True, blank=True)
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['name', 'category'],
+                name='unique_product_name_per_category'
+            )
+        ]
+
     def __str__(self):
         return self.name
 
