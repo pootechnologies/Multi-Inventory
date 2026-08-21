@@ -121,6 +121,14 @@ class ProductBulkDeleteView(generics.DestroyAPIView):
             status=status.HTTP_200_OK
         )
 
+class ProductCountView(APIView):
+    def get(self, request, *args, **kwargs):
+        total_count = Product.objects.count()
+        return Response(
+            {"total_products": total_count},
+            status=status.HTTP_200_OK
+        )
+
 class ProductListCreateView(generics.ListCreateAPIView):
     queryset = Product.objects.all()
     serializer_class = ProductSerializer
